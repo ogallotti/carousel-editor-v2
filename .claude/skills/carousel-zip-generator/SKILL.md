@@ -51,13 +51,15 @@ Para spec completo e exemplos, ler `references/creative-brief-spec.md`.
 
 Planejar a sequência de slides seguindo uma progressão clara:
 
-| # | Função | Layout sugerido |
-|---|--------|----------------|
-| 1 | **Hook** — título que para o scroll | `cover` |
-| 2 | **Problema** — dor que o público sente | `title-body` ou `image-full` |
-| 3-7 | **Desenvolvimento** — método, exemplos, provas | `title-body`, `list`, `image-top`, `quote`, `highlight` |
-| 8-9 | **Virada** — insight ou resultado | `quote` ou `highlight` |
-| 10 | **CTA** — uma ação clara | `cta` |
+| # | Função | Layout |
+|---|--------|--------|
+| 1 | **Hook** — título que para o scroll | `freeform` + backgroundImage + overlay + texto na base |
+| 2 | **Problema** — dor que o público sente | `freeform` + backgroundImage + overlay + tag topo + texto base |
+| 3-7 | **Desenvolvimento** — método, exemplos, provas | `freeform` + backgroundImage (slides com imagem) OU `list`/`quote`/`highlight` (slides texto puro) |
+| 8-9 | **Virada** — insight ou resultado | `freeform` + backgroundImage OU `quote` |
+| 10 | **CTA** — uma ação clara | `freeform` + backgroundImage + overlay + texto na base |
+
+**REGRA**: Se o slide tem imagem, usar `freeform` + `backgroundImage`. Nunca `image-top`/`image-bottom` para visual editorial.
 
 **Regras editoriais (não negociar):**
 - 8 a 12 slides (sweet spot para Instagram)
@@ -296,17 +298,76 @@ Cada slide:
 
 | Layout | Melhor Para |
 |--------|------------|
-| `cover` | Capa / hook |
-| `title-body` | Conteúdo padrão (tag + título + texto) |
-| `full-text` | Texto longo |
-| `image-top` | Imagem acima, texto abaixo |
-| `image-bottom` | Texto acima, imagem abaixo |
-| `image-full` | Foto fullscreen + overlay + texto |
-| `quote` | Citação / depoimento |
-| `list` | Lista com ícones |
-| `highlight` | Caixa de destaque |
+| **`freeform`** | **PADRÃO EDITORIAL** — imagem de fundo + overlay + texto posicionado. Usar em TODOS os slides com imagem. |
+| `cover` | Capa simples sem imagem (texto centralizado) |
+| `title-body` | Conteúdo texto puro (tag + título + texto) |
+| `full-text` | Texto longo sem imagem |
+| `image-top` | Imagem como elemento acima do texto (sem fundo) |
+| `image-bottom` | Texto acima, imagem como elemento abaixo |
+| `image-full` | Similar a freeform mas sem posicionamento livre |
+| `quote` | Citação / depoimento (texto puro) |
+| `list` | Lista com ícones (texto puro) |
+| `highlight` | Caixa de destaque (texto puro) |
 | `cta` | Call-to-action final |
-| `freeform` | Layout livre (posicionamento absoluto) |
+
+### Padrão Editorial Freeform (USAR SEMPRE QUE TIVER IMAGEM)
+
+Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`** com este padrão:
+
+```json
+{
+  "id": "slide-id",
+  "layout": "freeform",
+  "backgroundImage": "assets/scene-03.jpg",
+  "elements": [
+    {
+      "id": "overlay-id",
+      "type": "overlay",
+      "fill": "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)",
+      "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
+    },
+    {
+      "id": "tag-id",
+      "type": "tag",
+      "content": "TÓPICO",
+      "x": 80, "y": 100, "w": 300, "zIndex": 2
+    },
+    {
+      "id": "heading-id",
+      "type": "heading",
+      "level": 1,
+      "content": "Frase de impacto do slide.",
+      "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2
+    },
+    {
+      "id": "paragraph-id",
+      "type": "paragraph",
+      "content": "Texto detalhado posicionado na parte inferior do slide.",
+      "x": 80, "y": 1100, "w": 920, "fontSize": 24, "zIndex": 2
+    }
+  ]
+}
+```
+
+**Regras de posicionamento (canvas 1080x1440):**
+- **Padding lateral**: `x: 80`, `w: 920` (80px de cada lado)
+- **Tag no topo**: `y: 80–120`
+- **Heading abaixo da tag**: `y: 150–200`
+- **Texto longo na base**: `y: 1000–1200` (ajustar conforme tamanho do texto)
+- **Overlay sempre**: `x:0, y:0, w:1080, h:1440, zIndex:1`
+- **Texto sempre**: `zIndex: 2` (acima do overlay)
+- **Slide de capa (primeiro)**: texto na base (`y: 1040+`), overlay fade-to-top
+- **Slide de CTA (último)**: texto na base, overlay fade-to-top
+
+**Overlays recomendados:**
+
+| Padrão | Quando usar |
+|--------|------------|
+| `linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.3) 100%)` | Texto na base (capa, CTA) |
+| `linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)` | Tag no topo + texto na base (maioria dos slides) |
+| `linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 100%)` | Só texto na base, imagem limpa no topo |
+
+**IMPORTANTE**: Não usar `image-top`, `image-bottom` ou `image-full` quando a imagem deve ser o fundo do slide. Esses layouts colocam a imagem como elemento separado, não como background. Para visual editorial cinematográfico, **sempre usar `freeform` + `backgroundImage`**.
 
 **12 tipos de elementos:**
 

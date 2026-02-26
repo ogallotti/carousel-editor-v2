@@ -419,3 +419,229 @@ Topic: "Liderança" — motivational/educational
   ]
 }
 ```
+
+---
+
+## Example 4: Editorial Freeform Carousel (PADRÃO PREMIUM)
+
+**Este é o padrão de maior qualidade.** Todos os slides usam `freeform` + `backgroundImage` + overlay + texto posicionado. Resultado: visual cinematográfico editorial.
+
+Topic: "Produtividade para Desenvolvedores"
+
+```json
+{
+  "version": 1,
+  "generator": "ai-carousel-generator",
+  "generatorVersion": "1.0.0",
+  "createdAt": "2026-02-26T12:00:00.000Z",
+  "updatedAt": "2026-02-26T12:00:00.000Z",
+  "id": "dev-produtividade-001",
+  "title": "O Segredo dos Devs que Entregam 3x Mais",
+  "format": "carousel",
+  "canvas": { "width": 1080, "height": 1440 },
+  "header": { "handle": "@devpro", "showCounter": true },
+  "footer": { "text": "DEV PRO", "style": "uppercase" },
+  "theme": {
+    "name": "Dark Tech",
+    "colors": {
+      "background": "#0a0e1a",
+      "backgroundSubtle": "#111827",
+      "text": "#f8fafc",
+      "textSecondary": "#cbd5e1",
+      "textMuted": "#64748b",
+      "highlight": "#3b82f6",
+      "accent": "#2563eb",
+      "divider": "#1e293b",
+      "cardBackground": "#0f172a",
+      "highlightSoft": "rgba(59,130,246,0.10)",
+      "highlightBorder": "rgba(59,130,246,0.25)",
+      "iconColor": "#3b82f6",
+      "iconColorAlt": "#2563eb"
+    },
+    "typography": {
+      "heading": { "family": "Space Grotesk", "weight": 700 },
+      "paragraph": { "family": "Inter", "weight": 400 },
+      "subtitle": { "family": "Inter", "weight": 500 },
+      "tag": { "family": "Space Grotesk", "weight": 700 },
+      "quote": { "family": "Space Grotesk", "weight": 500 }
+    },
+    "fontScale": 1,
+    "elementGap": 24
+  },
+  "slides": [
+    {
+      "id": "s01",
+      "layout": "freeform",
+      "backgroundImage": "assets/hero-editorial.jpg",
+      "elements": [
+        {
+          "id": "s01-ov", "type": "overlay",
+          "fill": "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.3) 100%)",
+          "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
+        },
+        {
+          "id": "s01-h1", "type": "heading", "level": 1,
+          "content": "O Segredo dos Devs que Entregam <span class=\"hl\">3x Mais</span>.",
+          "x": 80, "y": 1040, "w": 920, "fontSize": 52, "zIndex": 2
+        },
+        {
+          "id": "s01-sub", "type": "paragraph",
+          "content": "Não é talento. É sistema.",
+          "x": 80, "y": 1240, "w": 920, "fontSize": 28, "zIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "s02",
+      "layout": "freeform",
+      "backgroundImage": "assets/scene-02.jpg",
+      "elements": [
+        {
+          "id": "s02-ov", "type": "overlay",
+          "fill": "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)",
+          "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
+        },
+        {
+          "id": "s02-tag", "type": "tag",
+          "content": "O PROBLEMA",
+          "x": 80, "y": 100, "w": 300, "zIndex": 2
+        },
+        {
+          "id": "s02-h1", "type": "heading", "level": 1,
+          "content": "Você trabalha 10h e entrega menos que queria.",
+          "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2
+        },
+        {
+          "id": "s02-p1", "type": "paragraph",
+          "content": "Reunião, Slack, code review, refactor, bug urgente. No fim do dia, a feature que importava não saiu. E amanhã repete.",
+          "x": 80, "y": 1120, "w": 920, "fontSize": 24, "zIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "s03",
+      "layout": "freeform",
+      "backgroundImage": "assets/scene-03.jpg",
+      "elements": [
+        {
+          "id": "s03-ov", "type": "overlay",
+          "fill": "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)",
+          "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
+        },
+        {
+          "id": "s03-tag", "type": "tag",
+          "content": "O INSIGHT",
+          "x": 80, "y": 100, "w": 250, "zIndex": 2
+        },
+        {
+          "id": "s03-h1", "type": "heading", "level": 1,
+          "content": "Produtividade não é velocidade. É foco.",
+          "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2
+        },
+        {
+          "id": "s03-p1", "type": "paragraph",
+          "content": "Os devs mais produtivos não digitam mais rápido. Eles eliminam decisões desnecessárias, automatizam o repetitivo e protegem blocos de 2h para código que importa.",
+          "x": 80, "y": 1080, "w": 920, "fontSize": 23, "zIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "s04",
+      "layout": "freeform",
+      "backgroundImage": "assets/scene-04.jpg",
+      "elements": [
+        {
+          "id": "s04-ov", "type": "overlay",
+          "fill": "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.9) 100%)",
+          "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
+        },
+        {
+          "id": "s04-tag", "type": "tag",
+          "content": "MÉTODO",
+          "x": 80, "y": 100, "w": 200, "zIndex": 2
+        },
+        {
+          "id": "s04-h1", "type": "heading", "level": 1,
+          "content": "3 blocos por dia. Sem exceção.",
+          "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2
+        },
+        {
+          "id": "s04-p1", "type": "paragraph",
+          "content": "Manhã: deep work (feature principal). Tarde: code review + comunicação. Final: automação e cleanup. O segredo não é fazer mais coisas, é fazer as certas na hora certa.",
+          "x": 80, "y": 1060, "w": 920, "fontSize": 23, "zIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "s05",
+      "layout": "freeform",
+      "backgroundImage": "assets/scene-05.jpg",
+      "elements": [
+        {
+          "id": "s05-ov", "type": "overlay",
+          "fill": "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.9) 100%)",
+          "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
+        },
+        {
+          "id": "s05-h1", "type": "heading", "level": 1,
+          "content": "O resultado fala por si.",
+          "x": 80, "y": 120, "w": 920, "fontSize": 44, "zIndex": 2
+        },
+        {
+          "id": "s05-p1", "type": "paragraph",
+          "content": "Menos horas, mais entregas. Menos contexto perdido, mais código que funciona de primeira. O sistema se paga na primeira semana.",
+          "x": 80, "y": 1140, "w": 920, "fontSize": 24, "zIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "s06",
+      "layout": "freeform",
+      "backgroundImage": "assets/scene-06.jpg",
+      "elements": [
+        {
+          "id": "s06-ov", "type": "overlay",
+          "fill": "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.3) 100%)",
+          "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
+        },
+        {
+          "id": "s06-h1", "type": "heading", "level": 1,
+          "content": "Salva e testa amanhã de manhã.",
+          "x": 80, "y": 1040, "w": 920, "fontSize": 44, "zIndex": 2
+        },
+        {
+          "id": "s06-p1", "type": "paragraph",
+          "content": "Começa com um bloco de 2h sem interrupção. Só isso.",
+          "x": 80, "y": 1220, "w": 920, "fontSize": 26, "zIndex": 2
+        },
+        {
+          "id": "s06-handle", "type": "paragraph",
+          "content": "@devpro",
+          "x": 430, "y": 1350, "w": 300, "fontSize": 24, "zIndex": 2
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Padrão deste exemplo:**
+- **TODOS** os slides usam `layout: "freeform"` + `backgroundImage`
+- **Overlay** em todos os slides: `x:0, y:0, w:1080, h:1440, zIndex:1`
+- **Textos** sempre `zIndex: 2`, padding `x:80, w:920`
+- **Capa** (slide 1): texto na base, overlay fade-to-top
+- **Corpo** (slides 2-5): tag no topo + heading abaixo + parágrafo na base
+- **CTA** (slide 6): texto na base, overlay fade-to-top, handle centralizado
+
+**ZIP structure:**
+```
+carousel.zip
+├── schema.json
+└── assets/
+    ├── hero-editorial.jpg
+    ├── scene-02.jpg
+    ├── scene-03.jpg
+    ├── scene-04.jpg
+    ├── scene-05.jpg
+    └── scene-06.jpg
+```

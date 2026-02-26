@@ -207,16 +207,17 @@ Color or gradient overlay layer. Typically used over background images in freefo
 "transparent"                                               — no overlay
 ```
 
+**Freeform usage pattern (full-canvas overlay):**
 ```json
 {
   "id": "o1a2b3c4d5e6",
   "type": "overlay",
-  "fill": "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%)",
+  "fill": "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)",
   "x": 0,
   "y": 0,
   "w": 1080,
   "h": 1440,
-  "zIndex": -1
+  "zIndex": 1
 }
 ```
 

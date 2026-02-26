@@ -657,7 +657,7 @@ function SlideRendererComponent({
     : null;
 
   // Render freeform elements
-  const renderFreeformElement = (element: SlideElement) => {
+  const renderFreeformElement = (element: SlideElement, arrayIndex: number) => {
     const isSelected = selectedElementId === element.id;
 
     const baseElement = (() => {
@@ -870,6 +870,7 @@ function SlideRendererComponent({
       <FreeformElement
         key={element.id}
         element={element}
+        layerIndex={arrayIndex}
         scale={displayScale}
         isEditing={isEditing}
         isSelected={isSelected}

@@ -1181,11 +1181,6 @@ function ElementProperties({
             value={element.rotation}
             onChange={(v) => set('rotation' as keyof SlideElement, v as never)}
           />
-          <NumberField
-            label="Z-Index"
-            value={element.zIndex}
-            onChange={(v) => set('zIndex' as keyof SlideElement, v as never)}
-          />
         </>
       )}
     </div>

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 
 interface FreeformElementProps {
   element: SlideElement;
+  layerIndex: number;
   scale: number;
   isEditing: boolean;
   isSelected: boolean;
@@ -21,6 +22,7 @@ interface FreeformElementProps {
 
 export function FreeformElement({
   element,
+  layerIndex,
   scale,
   isEditing,
   isSelected,
@@ -30,6 +32,8 @@ export function FreeformElement({
   onGuidesChange,
   children,
 }: FreeformElementProps) {
+  const isOverlay = element.type === 'overlay';
+
   const { startDrag, startResize } = useFreeformDrag({
     element,
     scale,
@@ -44,15 +48,15 @@ export function FreeformElement({
   const w = element.w ?? 920;
   const h = element.h; // undefined means auto-height
   const rotation = element.rotation ?? 0;
-  const zIndex = element.zIndex ?? 0;
 
   const style: React.CSSProperties = {
     left: x,
     top: y,
     width: w,
-    zIndex: zIndex,
+    zIndex: layerIndex,
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     textAlign: element.textAlign,
+    ...(isOverlay ? { pointerEvents: 'none' } : {}),
   };
 
   if (h) {
@@ -64,11 +68,12 @@ export function FreeformElement({
       className={cn(
         'freeform-element',
         isSelected && 'selected',
-        isEditing && !isSelected && 'cursor-pointer'
+        isEditing && !isSelected && !isOverlay && 'cursor-pointer'
       )}
       style={style}
       data-element-id={element.id}
       onClick={(e) => {
+        if (isOverlay) return;
         if (isEditing) {
           e.stopPropagation();
           if (!isSelected) {
@@ -77,6 +82,7 @@ export function FreeformElement({
         }
       }}
       onMouseDown={(e) => {
+        if (isOverlay) return;
         if (!isEditing || !isSelected) return;
         // Don't interfere with contentEditable, resize handle, or drag handle
         const target = e.target as HTMLElement;
@@ -90,8 +96,8 @@ export function FreeformElement({
     >
       {children}
 
-      {/* Drag handle */}
-      {isEditing && (
+      {/* Drag handle — hidden for overlays (click-through) */}
+      {isEditing && !isOverlay && (
         <div
           className="drag-handle"
           onMouseDown={startDrag}
@@ -101,8 +107,8 @@ export function FreeformElement({
         </div>
       )}
 
-      {/* Resize handle */}
-      {isEditing && (
+      {/* Resize handle — hidden for overlays (click-through) */}
+      {isEditing && !isOverlay && (
         <div
           className="resize-handle"
           onMouseDown={startResize}

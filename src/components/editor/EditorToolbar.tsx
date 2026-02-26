@@ -25,7 +25,6 @@ export interface EditorToolbarProps {
   isDirty: boolean;
   isSaving: boolean;
   footerText: string;
-  footerStyle: 'uppercase' | 'normal';
   handle: string;
   showCounter: boolean;
   isPreviewMode: boolean;
@@ -41,7 +40,6 @@ export interface EditorToolbarProps {
   onZoomOut: () => void;
   onSetFooter: (text: string) => void;
   onSetHandle: (handle: string) => void;
-  onSetFooterStyle: (style: 'uppercase' | 'normal') => void;
   onSetShowCounter: (show: boolean) => void;
   onExportSlide: () => void;
   onExportAll: () => void;
@@ -54,7 +52,6 @@ export function EditorToolbar({
   isDirty,
   isSaving,
   footerText,
-  footerStyle,
   handle,
   showCounter,
   isPreviewMode,
@@ -70,7 +67,6 @@ export function EditorToolbar({
   onZoomOut,
   onSetFooter,
   onSetHandle,
-  onSetFooterStyle,
   onSetShowCounter,
   onExportSlide,
   onExportAll,
@@ -91,10 +87,6 @@ export function EditorToolbar({
     },
     [onSetHandle]
   );
-
-  const handleToggleFooterStyle = useCallback(() => {
-    onSetFooterStyle(footerStyle === 'uppercase' ? 'normal' : 'uppercase');
-  }, [footerStyle, onSetFooterStyle]);
 
   const handleToggleShowCounter = useCallback(() => {
     onSetShowCounter(!showCounter);
@@ -129,9 +121,9 @@ export function EditorToolbar({
 
         <Separator orientation="vertical" className="mx-1 h-5" />
 
-        {/* Handle input */}
+        {/* Header text input */}
         <div className="hidden items-center gap-1 md:flex">
-          <span className="text-xs text-muted-foreground">Handle:</span>
+          <span className="text-xs text-muted-foreground">Cabeçalho:</span>
           <Input
             className="h-7 w-28 text-xs"
             value={handle}
@@ -140,7 +132,7 @@ export function EditorToolbar({
           />
         </div>
 
-        {/* Footer input + style toggle */}
+        {/* Footer input */}
         <div className="hidden items-center gap-1 md:flex">
           <span className="text-xs text-muted-foreground">Rodapé:</span>
           <Input
@@ -149,19 +141,6 @@ export function EditorToolbar({
             onChange={handleFooterChange}
             placeholder="MINHA MARCA"
           />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={footerStyle === 'uppercase' ? 'secondary' : 'ghost'}
-                size="sm"
-                className="h-7 px-2 text-[10px] font-semibold"
-                onClick={handleToggleFooterStyle}
-              >
-                {footerStyle === 'uppercase' ? 'AA' : 'Aa'}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{footerStyle === 'uppercase' ? 'Rodapé em maiúsculas' : 'Rodapé em capitalização normal'}</TooltipContent>
-          </Tooltip>
         </div>
 
         {/* Counter toggle */}

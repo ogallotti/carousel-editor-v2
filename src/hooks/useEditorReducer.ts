@@ -172,11 +172,6 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...s, carousel: { ...s.carousel, header: { ...s.carousel.header, handle: action.handle } } };
     }
 
-    case 'SET_FOOTER_STYLE': {
-      const s = pushUndo(state);
-      return { ...s, carousel: { ...s.carousel, footer: { ...s.carousel.footer, style: action.style } } };
-    }
-
     case 'SET_SHOW_COUNTER': {
       const s = pushUndo(state);
       return { ...s, carousel: { ...s.carousel, header: { ...s.carousel.header, showCounter: action.show } } };
@@ -269,7 +264,6 @@ export function useEditorReducer(initialCarousel?: CarouselSchema) {
   const setTheme = useCallback((theme: Theme) => dispatch({ type: 'SET_THEME', payload: theme }), []);
   const setFooter = useCallback((footer: string) => dispatch({ type: 'SET_FOOTER', payload: footer }), []);
   const setHandle = useCallback((handle: string) => dispatch({ type: 'SET_HANDLE', handle }), []);
-  const setFooterStyle = useCallback((style: 'uppercase' | 'normal') => dispatch({ type: 'SET_FOOTER_STYLE', style }), []);
   const setShowCounter = useCallback((show: boolean) => dispatch({ type: 'SET_SHOW_COUNTER', show }), []);
   const setSlideBg = useCallback((slideIndex: number, color: string | undefined) =>
     dispatch({ type: 'SET_SLIDE_BG', payload: { slideIndex, color } }), []);
@@ -287,11 +281,11 @@ export function useEditorReducer(initialCarousel?: CarouselSchema) {
   const actions = useMemo(() => ({
     setCarousel, selectSlide, selectElement, updateSlide, addSlide, deleteSlide,
     moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement,
-    setTheme, setFooter, setHandle, setFooterStyle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
+    setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
   }), [
     setCarousel, selectSlide, selectElement, updateSlide, addSlide, deleteSlide,
     moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement,
-    setTheme, setFooter, setHandle, setFooterStyle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
+    setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
   ]);
 
   return { state, actions, dispatch };

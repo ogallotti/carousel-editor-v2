@@ -33,7 +33,6 @@ export type EditorAction =
   | { type: 'SET_THEME'; payload: Theme }
   | { type: 'SET_FOOTER'; payload: string }
   | { type: 'SET_HANDLE'; handle: string }
-  | { type: 'SET_FOOTER_STYLE'; style: 'uppercase' | 'normal' }
   | { type: 'SET_SHOW_COUNTER'; show: boolean }
   | { type: 'SET_SLIDE_BG'; payload: { slideIndex: number; color: string | undefined } }
   | { type: 'SET_SLIDE_BG_IMAGE'; payload: { slideIndex: number; image: string | undefined } }

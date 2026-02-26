@@ -238,6 +238,7 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
             theme={theme}
             footer={footer.text}
             handle={header.handle}
+            showCounter={header.showCounter}
             slideNumber={idx + 1}
             totalSlides={totalSlides}
             isEditing={false}
@@ -299,7 +300,8 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
           className="flex items-center py-6"
           style={{
             gap,
-            transform: `translateX(calc(50% - ${offsetX}px))`,
+            marginLeft: '50%',
+            transform: `translateX(-${offsetX}px)`,
             transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
@@ -321,6 +323,7 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
                   theme={theme}
                   footer={footer.text}
                   handle={header.handle}
+                  showCounter={header.showCounter}
                   slideNumber={idx + 1}
                   totalSlides={totalSlides}
                   isEditing={isActive && !isPreviewMode}
@@ -360,6 +363,7 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
             theme={theme}
             footer={footer.text}
             handle={header.handle}
+            showCounter={header.showCounter}
             isPreviewMode={isPreviewMode}
             onSelectSlide={actions.selectSlide}
             onAddSlide={actions.addSlide}

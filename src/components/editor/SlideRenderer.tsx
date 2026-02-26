@@ -32,6 +32,7 @@ interface SlideRendererProps {
   theme: Theme;
   footer: string;
   handle: string;
+  showCounter?: boolean;
   slideNumber: number;
   totalSlides: number;
   isEditing: boolean;
@@ -171,6 +172,7 @@ function SlideRendererComponent({
   theme,
   footer,
   handle,
+  showCounter = true,
   slideNumber,
   totalSlides,
   isEditing,
@@ -909,7 +911,7 @@ function SlideRendererComponent({
           {/* Header */}
           <div className="hd" style={slide.layout === 'freeform' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } : undefined}>
             <span>{handle}</span>
-            <span className="slide-counter">{counter}</span>
+            {showCounter && <span className="slide-counter">{counter}</span>}
           </div>
 
           {/* Content */}

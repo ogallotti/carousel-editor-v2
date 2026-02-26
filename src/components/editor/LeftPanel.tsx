@@ -40,6 +40,7 @@ interface LeftPanelProps {
   theme: Theme;
   footer: string;
   handle: string;
+  showCounter?: boolean;
   isPreviewMode: boolean;
   onSelectSlide: (index: number) => void;
   onAddSlide: (afterIndex: number, slide: Slide) => void;
@@ -156,6 +157,7 @@ export function LeftPanel({
   theme,
   footer,
   handle,
+  showCounter,
   isPreviewMode,
   onSelectSlide,
   onAddSlide,
@@ -289,6 +291,7 @@ export function LeftPanel({
                       theme={theme}
                       footer={footer}
                       handle={handle}
+                      showCounter={showCounter}
                       slideNumber={idx + 1}
                       totalSlides={totalSlides}
                       isEditing={false}

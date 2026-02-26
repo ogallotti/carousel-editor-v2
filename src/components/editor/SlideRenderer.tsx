@@ -931,6 +931,7 @@ function SlideRendererComponent({
       >
         <div
           ref={slideRef}
+          data-slide-index={slideNumber - 1}
           className={cn(
             "slide-renderer slide",
             slide.layout === 'freeform' && "slide-freeform"

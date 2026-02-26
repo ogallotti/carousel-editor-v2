@@ -124,8 +124,8 @@ function EditorInner({
   }, [state.selectedSlideIndex]);
 
   const handleExportAll = useCallback(() => {
-    exportAllSlidesPng(state.carousel.slides.length, actions.selectSlide);
-  }, [state.carousel.slides.length, actions.selectSlide]);
+    exportAllSlidesPng(state.carousel.slides.length);
+  }, [state.carousel.slides.length]);
 
   const slideCount = state.carousel.slides.length;
 

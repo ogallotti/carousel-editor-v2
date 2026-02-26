@@ -250,8 +250,8 @@ export function LeftPanel({
         </div>
 
         {/* ═══════════════ TAB 1: Slides ═══════════════ */}
-        <TabsContent value="slides" className="flex min-h-0 flex-1 flex-col">
-          <ScrollArea className="flex-1">
+        <TabsContent value="slides" className="mt-0 flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
             <div className="flex flex-col gap-2 p-2">
               {slides.map((slide, idx) => (
                 <div
@@ -395,7 +395,7 @@ export function LeftPanel({
         </TabsContent>
 
         {/* ═══════════════ TAB 2: Elementos ═══════════════ */}
-        <TabsContent value="elements" className="flex min-h-0 flex-1 flex-col">
+        <TabsContent value="elements" className="mt-0 flex-1 overflow-hidden flex flex-col">
           <div className="flex-shrink-0 px-3 pt-3 pb-2">
             <p className="text-xs font-medium text-muted-foreground">
               Adicionar ao slide {selectedSlideIndex + 1}

@@ -976,89 +976,6 @@ function SlideRendererComponent({
             />
           )}
 
-          {/* Layout toggle button — editor only */}
-          {isEditing && onSetSlideLayout && (
-            <div
-              data-editor-control
-              style={{
-                position: 'absolute',
-                bottom: 16,
-                right: 16,
-                zIndex: 99998,
-              }}
-            >
-              {slide.layout === 'freeform' ? (
-                // Freeform → Flow: show layout picker
-                <div style={{ position: 'relative' }}>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setLayoutPickerOpen(!layoutPickerOpen); }}
-                    title="Converter para layout padrão"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '8px 14px', borderRadius: 8,
-                      background: 'rgba(0,0,0,0.7)', color: '#fff',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      cursor: 'pointer', fontSize: 22,
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  >
-                    <LayoutGrid style={{ width: 22, height: 22 }} />
-                    <span style={{ fontSize: 20 }}>Layout</span>
-                  </button>
-                  {layoutPickerOpen && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        position: 'absolute', bottom: '100%', right: 0, marginBottom: 8,
-                        background: 'rgba(15,15,15,0.95)', border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 10, padding: 6, minWidth: 200,
-                        backdropFilter: 'blur(12px)',
-                        display: 'flex', flexDirection: 'column', gap: 2,
-                      }}
-                    >
-                      {FLOW_LAYOUTS.map((l) => (
-                        <button
-                          key={l.value}
-                          type="button"
-                          onClick={() => handleConvertToFlow(l.value)}
-                          style={{
-                            display: 'block', width: '100%', textAlign: 'left',
-                            padding: '8px 12px', borderRadius: 6,
-                            background: 'transparent', color: '#fff',
-                            border: 'none', cursor: 'pointer', fontSize: 20,
-                          }}
-                          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
-                          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent'; }}
-                        >
-                          {l.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Flow → Freeform: direct conversion
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleConvertToFreeform(); }}
-                  title="Converter para freeform"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '8px 14px', borderRadius: 8,
-                    background: 'rgba(0,0,0,0.7)', color: '#fff',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    cursor: 'pointer', fontSize: 22,
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  <Move style={{ width: 22, height: 22 }} />
-                  <span style={{ fontSize: 20 }}>Freeform</span>
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Header */}
           <div className="hd" style={slide.layout === 'freeform' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } : undefined}>
             <span>{handle}</span>
@@ -1103,6 +1020,62 @@ function SlideRendererComponent({
             </>
           )}
         </div>
+
+        {/* Layout toggle button — outside slide zoom, inside wrapper for correct positioning */}
+        {isEditing && onSetSlideLayout && (
+          <div
+            data-editor-control
+            style={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              zIndex: 10,
+            }}
+          >
+            {slide.layout === 'freeform' ? (
+              // Freeform → Flow: show layout picker
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLayoutPickerOpen(!layoutPickerOpen); }}
+                  title="Converter para layout padrão"
+                  className="flex items-center gap-1.5 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] text-white/90 border border-white/15 backdrop-blur-sm cursor-pointer hover:bg-black/85 transition-colors"
+                >
+                  <LayoutGrid className="size-3.5" />
+                  Layout
+                </button>
+                {layoutPickerOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute bottom-full right-0 mb-1.5 rounded-lg bg-[rgba(15,15,15,0.95)] border border-white/15 p-1 min-w-[140px] backdrop-blur-xl flex flex-col gap-0.5"
+                  >
+                    {FLOW_LAYOUTS.map((l) => (
+                      <button
+                        key={l.value}
+                        type="button"
+                        onClick={() => handleConvertToFlow(l.value)}
+                        className="block w-full text-left px-2.5 py-1.5 rounded text-[11px] text-white/90 bg-transparent border-none cursor-pointer hover:bg-white/10 transition-colors"
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Flow → Freeform: direct conversion
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleConvertToFreeform(); }}
+                title="Converter para freeform"
+                className="flex items-center gap-1.5 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] text-white/90 border border-white/15 backdrop-blur-sm cursor-pointer hover:bg-black/85 transition-colors"
+              >
+                <Move className="size-3.5" />
+                Freeform
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Selection bubble toolbar — appears above text selection */}

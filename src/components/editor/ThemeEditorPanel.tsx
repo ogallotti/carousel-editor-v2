@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback } from 'react';
-import { Check } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,10 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Theme, ThemeColors } from '@/types/schema';
+import type { Theme, ThemeColors, ThemeTypography } from '@/types/schema';
 import { DEFAULT_THEME_DARK, DEFAULT_THEME_LIGHT } from '@/types/schema';
 import { derivedColors } from '@/lib/theme-utils';
 import { cn } from '@/lib/utils';
+import { getCustomThemes, saveCustomTheme, deleteCustomTheme } from '@/lib/custom-themes';
+import type { CustomTheme } from '@/lib/db';
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -50,7 +52,6 @@ const TYPOGRAPHY_CATEGORIES: Array<{
   { key: 'subtitle', label: 'Subtitulo' },
   { key: 'tag', label: 'Tag' },
   { key: 'quote', label: 'Citacao' },
-  { key: 'stat', label: 'Estatistica' },
 ];
 
 const PRESETS: Array<{ theme: Theme; label: string }> = [
@@ -100,6 +101,33 @@ export function ThemeEditorPanel({
   theme,
   onSetTheme,
 }: ThemeEditorPanelProps) {
+  const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newThemeName, setNewThemeName] = useState('');
+
+  useEffect(() => {
+    getCustomThemes().then(setCustomThemes);
+  }, []);
+
+  const handleSaveTheme = useCallback(async () => {
+    if (!newThemeName.trim()) return;
+    await saveCustomTheme({
+      name: newThemeName.trim(),
+      colors: theme.colors as unknown as Record<string, string>,
+      typography: theme.typography as unknown as Record<string, { family: string; weight: number }>,
+      fontScale: theme.fontScale,
+      createdAt: new Date(),
+    });
+    setCustomThemes(await getCustomThemes());
+    setSaveDialogOpen(false);
+    setNewThemeName('');
+  }, [newThemeName, theme]);
+
+  const handleDeleteTheme = useCallback(async (name: string) => {
+    await deleteCustomTheme(name);
+    setCustomThemes(await getCustomThemes());
+  }, []);
+
   // Update a color and auto-derive related colors
   const updateColor = useCallback(
     (key: keyof ThemeColors, value: string) => {
@@ -147,34 +175,93 @@ export function ThemeEditorPanel({
         <Label className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Presets
         </Label>
-        <div className="mt-1.5 flex gap-2">
-          {PRESETS.map(({ theme: preset, label }) => {
-            const isActive = theme.name === preset.name;
-            return (
+        <div className="mt-1.5 flex flex-col gap-2">
+          <div className="flex gap-2">
+            {PRESETS.map(({ theme: preset, label }) => {
+              const isActive = theme.name === preset.name;
+              return (
+                <Button
+                  key={preset.name}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'relative flex-1 justify-start gap-2',
+                    isActive && 'border-primary/50 bg-primary/10'
+                  )}
+                  onClick={() => onSetTheme(preset)}
+                >
+                  {/* Color swatches */}
+                  <span
+                    className="inline-block size-3 rounded-sm border border-border/30"
+                    style={{ backgroundColor: preset.colors.background }}
+                  />
+                  <span
+                    className="inline-block size-3 rounded-sm border border-border/30"
+                    style={{ backgroundColor: preset.colors.highlight }}
+                  />
+                  <span className="text-xs">{label}</span>
+                  {isActive && <Check className="ml-auto size-3 text-primary" />}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Saved custom themes */}
+          {customThemes.map((ct) => (
+            <div key={ct.name} className="flex items-center gap-1">
               <Button
-                key={preset.name}
                 variant="outline"
                 size="sm"
-                className={cn(
-                  'relative flex-1 justify-start gap-2',
-                  isActive && 'border-primary/50 bg-primary/10'
-                )}
-                onClick={() => onSetTheme(preset)}
+                className="flex-1 justify-start gap-2 text-xs h-8"
+                onClick={() => onSetTheme({
+                  name: ct.name,
+                  colors: ct.colors as unknown as ThemeColors,
+                  typography: ct.typography as unknown as ThemeTypography,
+                  fontScale: ct.fontScale,
+                  elementGap: theme.elementGap, // preserve current gap
+                })}
               >
-                {/* Color swatches */}
-                <span
-                  className="inline-block size-3 rounded-sm border border-border/30"
-                  style={{ backgroundColor: preset.colors.background }}
-                />
-                <span
-                  className="inline-block size-3 rounded-sm border border-border/30"
-                  style={{ backgroundColor: preset.colors.highlight }}
-                />
-                <span className="text-xs">{label}</span>
-                {isActive && <Check className="ml-auto size-3 text-primary" />}
+                <span className="inline-block size-3 rounded-sm border border-border/30" style={{ backgroundColor: ct.colors.background }} />
+                <span className="inline-block size-3 rounded-sm border border-border/30" style={{ backgroundColor: ct.colors.highlight }} />
+                {ct.name}
               </Button>
-            );
-          })}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 text-muted-foreground hover:text-destructive"
+                onClick={() => handleDeleteTheme(ct.name)}
+              >
+                <X className="size-3" />
+              </Button>
+            </div>
+          ))}
+
+          {/* Save current theme */}
+          {saveDialogOpen ? (
+            <div className="flex items-center gap-1.5">
+              <Input
+                value={newThemeName}
+                onChange={(e) => setNewThemeName(e.target.value)}
+                placeholder="Nome do tema"
+                className="h-7 flex-1 text-xs"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTheme(); if (e.key === 'Escape') setSaveDialogOpen(false); }}
+              />
+              <Button size="sm" className="h-7 text-xs" onClick={handleSaveTheme}>Salvar</Button>
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setSaveDialogOpen(false)}>
+                <X className="size-3" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 text-xs border-dashed h-8"
+              onClick={() => setSaveDialogOpen(true)}
+            >
+              Salvar tema atual
+            </Button>
+          )}
         </div>
       </section>
 
@@ -314,6 +401,27 @@ export function ThemeEditorPanel({
           value={theme.fontScale}
           onChange={(e) => updateFontScale(parseFloat(e.target.value))}
           className="h-2 w-full cursor-pointer accent-primary"
+        />
+      </section>
+
+      <Separator />
+
+      {/* ── Element Gap ──────────────────────────────────────── */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground">Espaçamento entre elementos</span>
+          <span className="font-mono text-xs text-muted-foreground tabular-nums">
+            {theme.elementGap ?? 24}px
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={80}
+          step={2}
+          value={theme.elementGap ?? 24}
+          onChange={(e) => onSetTheme({ ...theme, elementGap: parseInt(e.target.value) })}
+          className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
         />
       </section>
 

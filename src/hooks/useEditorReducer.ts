@@ -157,6 +157,20 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...s, carousel: { ...s.carousel, slides } };
     }
 
+    case 'REORDER_ELEMENT': {
+      const s = pushUndo(state);
+      const slides = [...s.carousel.slides];
+      const slide = { ...slides[action.payload.slideIndex] };
+      const elements = [...slide.elements];
+      const fromIdx = elements.findIndex((el) => el.id === action.payload.elementId);
+      if (fromIdx === -1) return state;
+      const [moved] = elements.splice(fromIdx, 1);
+      elements.splice(action.payload.newIndex, 0, moved);
+      slide.elements = elements;
+      slides[action.payload.slideIndex] = slide;
+      return { ...s, carousel: { ...s.carousel, slides } };
+    }
+
     case 'SET_THEME': {
       const s = pushUndo(state);
       return { ...s, carousel: { ...s.carousel, theme: action.payload } };
@@ -261,6 +275,8 @@ export function useEditorReducer(initialCarousel?: CarouselSchema) {
     dispatch({ type: 'DUPLICATE_ELEMENT', payload: { slideIndex, elementId } }), []);
   const moveElement = useCallback((slideIndex: number, elementId: string, direction: 'up' | 'down') =>
     dispatch({ type: 'MOVE_ELEMENT', payload: { slideIndex, elementId, direction } }), []);
+  const reorderElement = useCallback((slideIndex: number, elementId: string, newIndex: number) =>
+    dispatch({ type: 'REORDER_ELEMENT', payload: { slideIndex, elementId, newIndex } }), []);
   const setTheme = useCallback((theme: Theme) => dispatch({ type: 'SET_THEME', payload: theme }), []);
   const setFooter = useCallback((footer: string) => dispatch({ type: 'SET_FOOTER', payload: footer }), []);
   const setHandle = useCallback((handle: string) => dispatch({ type: 'SET_HANDLE', handle }), []);
@@ -280,11 +296,11 @@ export function useEditorReducer(initialCarousel?: CarouselSchema) {
 
   const actions = useMemo(() => ({
     setCarousel, selectSlide, selectElement, updateSlide, addSlide, deleteSlide,
-    moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement,
+    moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement, reorderElement,
     setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
   }), [
     setCarousel, selectSlide, selectElement, updateSlide, addSlide, deleteSlide,
-    moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement,
+    moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement, reorderElement,
     setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
   ]);
 

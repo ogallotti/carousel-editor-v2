@@ -11,14 +11,12 @@ import {
   Quote,
   Image,
   Layers,
-  BarChart3,
   List,
   Highlighter,
   Minus,
   Space,
   Smile,
-  ChevronUp,
-  ChevronDown,
+  GripVertical,
   Trash2,
   Upload,
   X,
@@ -49,16 +47,29 @@ import type {
   ImageElement,
   EmojiElement,
   SpacerElement,
-  StatElement,
   OverlayElement,
   QuoteElement,
   ListItemElement,
+  HighlightElement,
+  DividerElement,
 } from '@/types/schema';
 import { cn } from '@/lib/utils';
 import { useAssetContext } from '@/lib/asset-urls';
 import { saveAsset } from '@/lib/projects';
 
 export const BG_PSEUDO_ID = '__bg__';
+
+const FONT_FAMILIES = [
+  'Archivo',
+  'Inter',
+  'Space Grotesk',
+  'DM Sans',
+  'Poppins',
+  'Montserrat',
+  'Playfair Display',
+  'Merriweather',
+  'JetBrains Mono',
+];
 
 // ─── Props ──────────────────────────────────────────────────
 
@@ -71,6 +82,7 @@ interface RightPanelProps {
   onUpdateElement: (elementId: string, element: SlideElement) => void;
   onDeleteElement: (elementId: string) => void;
   onMoveElement: (elementId: string, direction: 'up' | 'down') => void;
+  onReorderElement?: (elementId: string, newIndex: number) => void;
   onSetTheme: (theme: Theme) => void;
   onSetSlideBg: (color: string | undefined) => void;
   slideBgImage?: string;
@@ -91,7 +103,6 @@ const ELEMENT_ICONS: Record<ElementType, React.ComponentType<{ className?: strin
   image: Image,
   overlay: Layers,
   quote: Quote,
-  stat: BarChart3,
   'list-item': List,
   highlight: Highlighter,
   divider: Minus,
@@ -107,7 +118,6 @@ const ELEMENT_TYPE_LABELS: Record<ElementType, string> = {
   image: 'Imagem',
   overlay: 'Overlay',
   quote: 'Citacao',
-  stat: 'Estatistica',
   'list-item': 'Item de Lista',
   highlight: 'Destaque',
   divider: 'Divisor',
@@ -126,10 +136,6 @@ function getElementPreview(el: SlideElement): string {
     return text.length > 24 ? text.slice(0, 24) + '\u2026' : text || ELEMENT_TYPE_LABELS[el.type];
   }
   if (el.type === 'image') return (el as ImageElement).alt || (el as ImageElement).src.slice(0, 20) || 'Imagem';
-  if (el.type === 'stat') {
-    const items = (el as StatElement).items;
-    return items.length > 0 ? `${items[0].value} \u2014 ${items[0].label}` : 'Estatistica';
-  }
   if (el.type === 'overlay') return 'Overlay';
   if (el.type === 'divider') return 'Divisor';
   if (el.type === 'spacer') return `${(el as SpacerElement).height}px`;
@@ -248,6 +254,78 @@ function TextAlignButtons({
           <AlignRight className="size-3.5" />
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ─── Color picker field helper ───────────────────────────────
+
+function ColorPickerField({
+  label,
+  value,
+  onChange,
+  placeholder = '#000000',
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (val: string | undefined) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="w-20 shrink-0 text-[11px] text-muted-foreground">{label}</Label>
+      <input
+        type="color"
+        value={value || '#000000'}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 w-7 shrink-0 cursor-pointer rounded border border-border/50 bg-transparent p-0"
+      />
+      <Input
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        placeholder={placeholder}
+        className="h-7 flex-1 font-mono text-xs"
+      />
+    </div>
+  );
+}
+
+// ─── Slider field helper ─────────────────────────────────────
+
+function SliderField({
+  label,
+  value,
+  defaultValue,
+  onChange,
+  min,
+  max,
+  step = 1,
+  suffix = '',
+}: {
+  label: string;
+  value: number | undefined;
+  defaultValue: number;
+  onChange: (val: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+}) {
+  const current = value ?? defaultValue;
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="w-20 shrink-0 text-[11px] text-muted-foreground">{label}</Label>
+      <Slider
+        value={[current]}
+        onValueChange={([v]) => onChange(v)}
+        min={min}
+        max={max}
+        step={step}
+        className="flex-1"
+      />
+      <span className="w-10 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
+        {current}{suffix}
+      </span>
     </div>
   );
 }
@@ -518,6 +596,7 @@ function SlideBackgroundSection({
             value={slideBg?.includes('gradient(') ? slideBg : BG_GRADIENT_PRESETS[0].fill}
             onChange={(css) => onSetSlideBg(css)}
             presets={BG_GRADIENT_PRESETS}
+            category="background"
           />
         </div>
       )}
@@ -634,6 +713,69 @@ function ElementProperties({
             value={element.marginBottom}
             onChange={(v) => set('marginBottom' as keyof SlideElement, v as never)}
           />
+
+          {/* Font family */}
+          <div className="flex items-center gap-2">
+            <Label className="w-20 shrink-0 text-[11px] text-muted-foreground">Família</Label>
+            <Select
+              value={element.fontFamily ?? '__default__'}
+              onValueChange={(v) =>
+                onUpdate({ ...element, fontFamily: v === '__default__' ? undefined : v } as SlideElement)
+              }
+            >
+              <SelectTrigger size="sm" className="h-7 w-full text-xs">
+                <SelectValue placeholder="Padrão (tema)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">Padrão (tema)</SelectItem>
+                {FONT_FAMILIES.map((f) => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Font weight */}
+          <div className="flex items-center gap-2">
+            <Label className="w-20 shrink-0 text-[11px] text-muted-foreground">Peso</Label>
+            <Select
+              value={element.fontWeight != null ? String(element.fontWeight) : '__default__'}
+              onValueChange={(v) =>
+                onUpdate({ ...element, fontWeight: v === '__default__' ? undefined : Number(v) } as SlideElement)
+              }
+            >
+              <SelectTrigger size="sm" className="h-7 w-full text-xs">
+                <SelectValue placeholder="Padrão (tema)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">Padrão (tema)</SelectItem>
+                <SelectItem value="400">400 Regular</SelectItem>
+                <SelectItem value="500">500 Medium</SelectItem>
+                <SelectItem value="600">600 Semibold</SelectItem>
+                <SelectItem value="700">700 Bold</SelectItem>
+                <SelectItem value="800">800 Extra</SelectItem>
+                <SelectItem value="900">900 Black</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Color */}
+          <ColorPickerField
+            label="Cor"
+            value={element.color}
+            onChange={(v) => onUpdate({ ...element, color: v } as SlideElement)}
+          />
+
+          {/* Opacity */}
+          <SliderField
+            label="Opacidade"
+            value={element.opacity != null ? Math.round(element.opacity * 100) : 100}
+            defaultValue={100}
+            onChange={(v) => onUpdate({ ...element, opacity: v / 100 } as SlideElement)}
+            min={0}
+            max={100}
+            suffix="%"
+          />
         </>
       )}
 
@@ -661,31 +803,172 @@ function ElementProperties({
 
       {/* ── Quote: attribution ── */}
       {element.type === 'quote' && (
-        <TextField
-          label="Atribuição"
-          value={(element as QuoteElement).attribution ?? ''}
-          onChange={(v) => onUpdate({ ...element, attribution: v || undefined } as SlideElement)}
-          placeholder="Autor da citação"
-        />
+        <>
+          <TextField
+            label="Atribuição"
+            value={(element as QuoteElement).attribution ?? ''}
+            onChange={(v) => onUpdate({ ...element, attribution: v || undefined } as SlideElement)}
+            placeholder="Autor da citação"
+          />
+          <ColorPickerField
+            label="Cor aspas"
+            value={(element as QuoteElement).quoteMarkColor}
+            onChange={(v) => onUpdate({ ...element, quoteMarkColor: v } as SlideElement)}
+          />
+          <SliderField
+            label="Tam. aspas"
+            value={(element as QuoteElement).quoteMarkSize}
+            defaultValue={96}
+            onChange={(v) => onUpdate({ ...element, quoteMarkSize: v } as SlideElement)}
+            min={24}
+            max={200}
+            suffix="px"
+          />
+          <SliderField
+            label="Opac. aspas"
+            value={(element as QuoteElement).quoteMarkOpacity != null ? Math.round((element as QuoteElement).quoteMarkOpacity! * 100) : 100}
+            defaultValue={100}
+            onChange={(v) => onUpdate({ ...element, quoteMarkOpacity: v / 100 } as SlideElement)}
+            min={0}
+            max={100}
+            suffix="%"
+          />
+        </>
       )}
 
       {/* ── List-item: icon ── */}
       {element.type === 'list-item' && (
-        <TextField
-          label="Ícone"
-          value={(element as ListItemElement).icon ?? ''}
-          onChange={(v) => onUpdate({ ...element, icon: v } as SlideElement)}
-          placeholder="✓ ou URL"
-        />
+        <>
+          <TextField
+            label="Ícone"
+            value={(element as ListItemElement).icon ?? ''}
+            onChange={(v) => onUpdate({ ...element, icon: v } as SlideElement)}
+            placeholder="✓ ou URL"
+          />
+          <SliderField
+            label="Tam. ícone"
+            value={(element as ListItemElement).iconSize}
+            defaultValue={48}
+            onChange={(v) => onUpdate({ ...element, iconSize: v } as SlideElement)}
+            min={16}
+            max={96}
+            suffix="px"
+          />
+          <ColorPickerField
+            label="Cor ícone"
+            value={(element as ListItemElement).iconColor}
+            onChange={(v) => onUpdate({ ...element, iconColor: v } as SlideElement)}
+          />
+        </>
       )}
+
+      {/* ── Highlight: extra controls ── */}
+      {element.type === 'highlight' && (() => {
+        const hl = element as HighlightElement;
+        return (
+          <>
+            <ColorPickerField
+              label="Fundo"
+              value={hl.backgroundColor}
+              onChange={(v) => onUpdate({ ...element, backgroundColor: v } as SlideElement)}
+            />
+            <ColorPickerField
+              label="Borda"
+              value={hl.borderColor}
+              onChange={(v) => onUpdate({ ...element, borderColor: v } as SlideElement)}
+            />
+            <SliderField
+              label="Arredond."
+              value={hl.borderRadius}
+              defaultValue={16}
+              onChange={(v) => onUpdate({ ...element, borderRadius: v } as SlideElement)}
+              min={0}
+              max={50}
+              suffix="px"
+            />
+            <SliderField
+              label="Padding"
+              value={hl.padding}
+              defaultValue={32}
+              onChange={(v) => onUpdate({ ...element, padding: v } as SlideElement)}
+              min={8}
+              max={80}
+              suffix="px"
+            />
+          </>
+        );
+      })()}
+
+      {/* ── Divider ── */}
+      {element.type === 'divider' && (() => {
+        const dv = element as DividerElement;
+        return (
+          <>
+            <ColorPickerField
+              label="Cor"
+              value={dv.dividerColor}
+              onChange={(v) => onUpdate({ ...element, dividerColor: v } as SlideElement)}
+            />
+            <SliderField
+              label="Largura"
+              value={dv.dividerWidth}
+              defaultValue={80}
+              onChange={(v) => onUpdate({ ...element, dividerWidth: v } as SlideElement)}
+              min={20}
+              max={1080}
+              suffix="px"
+            />
+            <SliderField
+              label="Espessura"
+              value={dv.dividerHeight}
+              defaultValue={3}
+              onChange={(v) => onUpdate({ ...element, dividerHeight: v } as SlideElement)}
+              min={1}
+              max={20}
+              suffix="px"
+            />
+            <SliderField
+              label="Arredond."
+              value={dv.borderRadius}
+              defaultValue={2}
+              onChange={(v) => onUpdate({ ...element, borderRadius: v } as SlideElement)}
+              min={0}
+              max={10}
+              suffix="px"
+            />
+            <SliderField
+              label="Opacidade"
+              value={dv.dividerOpacity != null ? Math.round(dv.dividerOpacity * 100) : 100}
+              defaultValue={100}
+              onChange={(v) => onUpdate({ ...element, dividerOpacity: v / 100 } as SlideElement)}
+              min={0}
+              max={100}
+              suffix="%"
+            />
+          </>
+        );
+      })()}
 
       {/* ── Image ── */}
       {element.type === 'image' && (
-        <ImageProperties
-          element={element as ImageElement}
-          onUpdate={onUpdate}
-          projectId={projectId}
-        />
+        <>
+          <ImageProperties
+            element={element as ImageElement}
+            onUpdate={onUpdate}
+            projectId={projectId}
+          />
+          {!isFreeform && (
+            <SliderField
+              label="Altura"
+              value={(element as ImageElement).imageHeight}
+              defaultValue={500}
+              onChange={(v) => onUpdate({ ...element, imageHeight: v } as SlideElement)}
+              min={100}
+              max={1200}
+              suffix="px"
+            />
+          )}
+        </>
       )}
 
       {/* ── Emoji ── */}
@@ -717,16 +1000,9 @@ function ElementProperties({
           <GradientEditor
             value={(element as OverlayElement).fill ?? 'transparent'}
             onChange={(newFill) => onUpdate({ ...element, fill: newFill } as SlideElement)}
+            category="overlay"
           />
         </div>
-      )}
-
-      {/* ── Stat items ── */}
-      {element.type === 'stat' && (
-        <StatItemsEditor
-          items={(element as StatElement).items}
-          onChange={(items) => onUpdate({ ...element, items } as SlideElement)}
-        />
       )}
 
       {/* ── Freeform positioning ── */}
@@ -804,65 +1080,6 @@ function ElementProperties({
   );
 }
 
-// ─── Stat Items Editor ──────────────────────────────────────
-
-function StatItemsEditor({
-  items,
-  onChange,
-}: {
-  items: Array<{ value: string; label: string }>;
-  onChange: (items: Array<{ value: string; label: string }>) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <SectionLabel>Itens</SectionLabel>
-      {items.map((item, idx) => (
-        <div key={idx} className="flex items-center gap-1">
-          <Input
-            value={item.value}
-            onChange={(e) => {
-              const updated = [...items];
-              updated[idx] = { ...updated[idx], value: e.target.value };
-              onChange(updated);
-            }}
-            placeholder="Valor"
-            className="h-7 flex-1 text-xs"
-          />
-          <Input
-            value={item.label}
-            onChange={(e) => {
-              const updated = [...items];
-              updated[idx] = { ...updated[idx], label: e.target.value };
-              onChange(updated);
-            }}
-            placeholder="Label"
-            className="h-7 flex-1 text-xs"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
-            onClick={() => {
-              const updated = items.filter((_, i) => i !== idx);
-              onChange(updated);
-            }}
-          >
-            <Trash2 className="size-3" />
-          </Button>
-        </div>
-      ))}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 w-full text-xs text-muted-foreground"
-        onClick={() => onChange([...items, { value: '', label: '' }])}
-      >
-        + Adicionar item
-      </Button>
-    </div>
-  );
-}
-
 // ─── Main Component ─────────────────────────────────────────
 
 export function RightPanel({
@@ -873,7 +1090,8 @@ export function RightPanel({
   onSelectElement,
   onUpdateElement,
   onDeleteElement,
-  onMoveElement,
+  onMoveElement: _onMoveElement,
+  onReorderElement,
   onSetTheme,
   onSetSlideBg,
   slideBgImage,
@@ -882,6 +1100,10 @@ export function RightPanel({
   onSetSlideBgPosition,
   projectId,
 }: RightPanelProps) {
+  const [dragElementId, setDragElementId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const dragCounterRef = useRef(0);
+
   const isBgSelected = selectedElementId === BG_PSEUDO_ID;
 
   const selectedElement = useMemo(
@@ -932,54 +1154,51 @@ export function RightPanel({
                 Nenhum elemento neste slide.
               </p>
             ) : (
-              [...slide.elements].reverse().map((el, idx, arr) => {
+              [...slide.elements].reverse().map((el, displayIdx) => {
                 const Icon = ELEMENT_ICONS[el.type];
                 const isSelected = el.id === selectedElementId;
-                const isFirst = idx === 0;
-                const isLast = idx === arr.length - 1;
 
                 return (
                   <div
                     key={el.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', el.id);
+                      setDragElementId(el.id);
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                    onDragEnter={(e) => { e.preventDefault(); dragCounterRef.current++; setDropTargetId(el.id); }}
+                    onDragLeave={() => { dragCounterRef.current--; if (dragCounterRef.current === 0) setDropTargetId(null); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      dragCounterRef.current = 0;
+                      const draggedId = e.dataTransfer.getData('text/plain');
+                      if (draggedId && draggedId !== el.id && onReorderElement) {
+                        // The list is displayed in REVERSE order. Convert display position to array index.
+                        const arrayIdx = slide.elements.length - 1 - displayIdx;
+                        onReorderElement(draggedId, arrayIdx);
+                      }
+                      setDragElementId(null);
+                      setDropTargetId(null);
+                    }}
+                    onDragEnd={() => { dragCounterRef.current = 0; setDragElementId(null); setDropTargetId(null); }}
                     className={cn(
-                      'element-row group flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer',
-                      isSelected && 'selected'
+                      'element-row group flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded-md transition-all',
+                      isSelected && 'bg-accent/50 ring-1 ring-accent/30',
+                      dragElementId === el.id && 'opacity-40',
+                      dropTargetId === el.id && dragElementId !== el.id && 'ring-2 ring-primary/50 bg-primary/5',
                     )}
                     onClick={() => onSelectElement(el.id)}
                   >
+                    <GripVertical className="size-3 shrink-0 cursor-grab text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing" />
                     <Icon className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="flex-1 truncate text-xs">
                       {getElementPreview(el)}
                     </span>
 
-                    {/* Action buttons on hover */}
+                    {/* Delete button on hover */}
                     <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                      {!isFirst && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMoveElement(el.id, 'down');
-                          }}
-                        >
-                          <ChevronUp className="size-3" />
-                        </Button>
-                      )}
-                      {!isLast && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMoveElement(el.id, 'up');
-                          }}
-                        >
-                          <ChevronDown className="size-3" />
-                        </Button>
-                      )}
                       <Button
                         variant="ghost"
                         size="icon"

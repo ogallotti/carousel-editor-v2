@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { ArrowUp, ArrowDown, Copy, Trash2, Image } from 'lucide-react';
-import type { Slide, SlideElement, Theme, ElementType, OverlayElement } from '@/types/schema';
+import type { Slide, SlideElement, Theme, ElementType, OverlayElement, HighlightElement, QuoteElement, ListItemElement, DividerElement, ImageElement } from '@/types/schema';
 import type { GuideLine } from '@/hooks/useSmartGuides';
 import { themeToCSVars } from '@/lib/theme-utils';
 import { useAssetContext } from '@/lib/asset-urls';
@@ -133,6 +133,10 @@ function ElementWrapper({
   if (element.marginBottom !== undefined) style.marginBottom = `${element.marginBottom}px`;
   if (element.fontSize !== undefined) style.fontSize = `${element.fontSize}px`;
   if (element.textAlign) style.textAlign = element.textAlign;
+  if (element.fontFamily) style.fontFamily = `'${element.fontFamily}', sans-serif`;
+  if (element.fontWeight !== undefined) style.fontWeight = element.fontWeight;
+  if (element.color) style.color = element.color;
+  if (element.opacity !== undefined) style.opacity = element.opacity;
 
   return (
     <div
@@ -495,12 +499,14 @@ function SlideRendererComponent({
 
       case 'image': {
         const isCropping = cropModeId === element.id;
+        const img = element as ImageElement;
         return (
           <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div
               className={element.variant === 'background' ? 'img-bg' : 'img-area'}
               style={{
-                ...(element.borderRadius !== undefined ? { borderRadius: `${element.borderRadius}px` } : {}),
+                ...(img.borderRadius !== undefined ? { borderRadius: `${img.borderRadius}px` } : {}),
+                ...(img.imageHeight !== undefined ? { height: `${img.imageHeight}px` } : {}),
                 ...(isCropping ? { outline: '2px dashed var(--editor-accent)', outlineOffset: -2 } : {}),
               }}
             >
@@ -554,10 +560,15 @@ function SlideRendererComponent({
         );
       }
 
-      case 'quote':
+      case 'quote': {
+        const qt = element as QuoteElement;
         return (
           <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <div className="quote-mark">&ldquo;</div>
+            <div className="quote-mark" style={{
+              ...(qt.quoteMarkColor ? { color: qt.quoteMarkColor } : {}),
+              ...(qt.quoteMarkSize !== undefined ? { fontSize: `${qt.quoteMarkSize}px` } : {}),
+              ...(qt.quoteMarkOpacity !== undefined ? { opacity: qt.quoteMarkOpacity } : {}),
+            }}>&ldquo;</div>
             <div className="quote-text" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
             {element.attribution && (
               <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
@@ -566,22 +577,10 @@ function SlideRendererComponent({
             )}
           </ElementWrapper>
         );
+      }
 
-      case 'stat':
-        return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <div className="stats-grid">
-              {element.items.map((item, i) => (
-                <div key={i} className="stat-item">
-                  <div className="stat-value">{item.value}</div>
-                  <div className="stat-label">{item.label}</div>
-                </div>
-              ))}
-            </div>
-          </ElementWrapper>
-        );
-
-      case 'list-item':
+      case 'list-item': {
+        const li = element as ListItemElement;
         return (
           <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div className="list-item">
@@ -589,9 +588,9 @@ function SlideRendererComponent({
                 <IconPicker
                   trigger={
                     element.icon?.startsWith('http') ? (
-                      <img className="icon cursor-pointer" src={element.icon} alt="Icone" title="Trocar icone" draggable={false} style={{ width: 48, height: 48 }} />
+                      <img className="icon cursor-pointer" src={element.icon} alt="Icone" title="Trocar icone" draggable={false} style={{ width: li.iconSize ?? 48, height: li.iconSize ?? 48 }} />
                     ) : (
-                      <span className="list-icon cursor-pointer" title="Trocar icone">
+                      <span className="list-icon cursor-pointer" title="Trocar icone" style={{ width: li.iconSize ?? 48, height: li.iconSize ?? 48, ...(li.iconColor ? { color: li.iconColor } : {}) }}>
                         {element.icon || '\u25CF'}
                       </span>
                     )
@@ -600,31 +599,47 @@ function SlideRendererComponent({
                 />
               ) : (
                 element.icon?.startsWith('http') ? (
-                  <img className="icon" src={element.icon} alt="Icone" draggable={false} style={{ width: 48, height: 48 }} />
+                  <img className="icon" src={element.icon} alt="Icone" draggable={false} style={{ width: li.iconSize ?? 48, height: li.iconSize ?? 48 }} />
                 ) : (
-                  <span className="list-icon">{element.icon || '\u25CF'}</span>
+                  <span className="list-icon" style={{ width: li.iconSize ?? 48, height: li.iconSize ?? 48, ...(li.iconColor ? { color: li.iconColor } : {}) }}>{element.icon || '\u25CF'}</span>
                 )
               )}
               <span {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
             </div>
           </ElementWrapper>
         );
+      }
 
-      case 'highlight':
+      case 'highlight': {
+        const hl = element as HighlightElement;
         return (
           <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <div className="highlight-block">
+            <div className="highlight-block" style={{
+              ...(hl.backgroundColor ? { background: hl.backgroundColor } : {}),
+              ...(hl.borderColor ? { borderColor: hl.borderColor } : {}),
+              ...(hl.borderRadius !== undefined ? { borderRadius: `${hl.borderRadius}px` } : {}),
+              ...(hl.padding !== undefined ? { padding: `${hl.padding}px` } : {}),
+            }}>
               <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
             </div>
           </ElementWrapper>
         );
+      }
 
-      case 'divider':
+      case 'divider': {
+        const div = element as DividerElement;
         return (
           <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <div className="divider-line" />
+            <div className="divider-line" style={{
+              ...(div.dividerColor ? { background: div.dividerColor } : {}),
+              ...(div.dividerWidth !== undefined ? { width: `${div.dividerWidth}px` } : {}),
+              ...(div.dividerHeight !== undefined ? { height: `${div.dividerHeight}px` } : {}),
+              ...(div.borderRadius !== undefined ? { borderRadius: `${div.borderRadius}px` } : {}),
+              ...(div.dividerOpacity !== undefined ? { opacity: div.dividerOpacity } : {}),
+            }} />
           </ElementWrapper>
         );
+      }
 
       case 'spacer':
         return (
@@ -766,10 +781,15 @@ function SlideRendererComponent({
           );
         }
 
-        case 'quote':
+        case 'quote': {
+          const fqt = element as QuoteElement;
           return (
             <div>
-              <div className="quote-mark">&ldquo;</div>
+              <div className="quote-mark" style={{
+                ...(fqt.quoteMarkColor ? { color: fqt.quoteMarkColor } : {}),
+                ...(fqt.quoteMarkSize !== undefined ? { fontSize: `${fqt.quoteMarkSize}px` } : {}),
+                ...(fqt.quoteMarkOpacity !== undefined ? { opacity: fqt.quoteMarkOpacity } : {}),
+              }}>&ldquo;</div>
               <div className="quote-text" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
               {element.attribution && (
                 <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
@@ -778,29 +798,19 @@ function SlideRendererComponent({
               )}
             </div>
           );
+        }
 
-        case 'stat':
-          return (
-            <div className="stats-grid">
-              {element.items.map((item, i) => (
-                <div key={i} className="stat-item">
-                  <div className="stat-value">{item.value}</div>
-                  <div className="stat-label">{item.label}</div>
-                </div>
-              ))}
-            </div>
-          );
-
-        case 'list-item':
+        case 'list-item': {
+          const fli = element as ListItemElement;
           return (
             <div className="list-item">
               {isEditing ? (
                 <IconPicker
                   trigger={
                     element.icon?.startsWith('http') ? (
-                      <img className="icon cursor-pointer" src={element.icon} alt="Icone" title="Trocar icone" draggable={false} style={{ width: 48, height: 48 }} />
+                      <img className="icon cursor-pointer" src={element.icon} alt="Icone" title="Trocar icone" draggable={false} style={{ width: fli.iconSize ?? 48, height: fli.iconSize ?? 48 }} />
                     ) : (
-                      <span className="list-icon cursor-pointer" title="Trocar icone">
+                      <span className="list-icon cursor-pointer" title="Trocar icone" style={{ width: fli.iconSize ?? 48, height: fli.iconSize ?? 48, ...(fli.iconColor ? { color: fli.iconColor } : {}) }}>
                         {element.icon || '\u25CF'}
                       </span>
                     )
@@ -809,24 +819,40 @@ function SlideRendererComponent({
                 />
               ) : (
                 element.icon?.startsWith('http') ? (
-                  <img className="icon" src={element.icon} alt="Icone" draggable={false} style={{ width: 48, height: 48 }} />
+                  <img className="icon" src={element.icon} alt="Icone" draggable={false} style={{ width: fli.iconSize ?? 48, height: fli.iconSize ?? 48 }} />
                 ) : (
-                  <span className="list-icon">{element.icon || '\u25CF'}</span>
+                  <span className="list-icon" style={{ width: fli.iconSize ?? 48, height: fli.iconSize ?? 48, ...(fli.iconColor ? { color: fli.iconColor } : {}) }}>{element.icon || '\u25CF'}</span>
                 )
               )}
               <span {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
             </div>
           );
+        }
 
-        case 'highlight':
+        case 'highlight': {
+          const fhl = element as HighlightElement;
           return (
-            <div className="highlight-block">
+            <div className="highlight-block" style={{
+              ...(fhl.backgroundColor ? { background: fhl.backgroundColor } : {}),
+              ...(fhl.borderColor ? { borderColor: fhl.borderColor } : {}),
+              ...(fhl.borderRadius !== undefined ? { borderRadius: `${fhl.borderRadius}px` } : {}),
+              ...(fhl.padding !== undefined ? { padding: `${fhl.padding}px` } : {}),
+            }}>
               <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
             </div>
           );
+        }
 
-        case 'divider':
-          return <div className="divider-line" />;
+        case 'divider': {
+          const fdiv = element as DividerElement;
+          return <div className="divider-line" style={{
+            ...(fdiv.dividerColor ? { background: fdiv.dividerColor } : {}),
+            ...(fdiv.dividerWidth !== undefined ? { width: `${fdiv.dividerWidth}px` } : {}),
+            ...(fdiv.dividerHeight !== undefined ? { height: `${fdiv.dividerHeight}px` } : {}),
+            ...(fdiv.borderRadius !== undefined ? { borderRadius: `${fdiv.borderRadius}px` } : {}),
+            ...(fdiv.dividerOpacity !== undefined ? { opacity: fdiv.dividerOpacity } : {}),
+          }} />;
+        }
 
         case 'spacer':
           return <div style={{ height: element.height }} />;
@@ -851,6 +877,17 @@ function SlideRendererComponent({
 
     if (!baseElement) return null;
 
+    // Build per-element style overrides for freeform content
+    const freeformStyle: React.CSSProperties = {};
+    if (element.fontSize !== undefined) freeformStyle.fontSize = `${element.fontSize}px`;
+    if (element.textAlign) freeformStyle.textAlign = element.textAlign;
+    if (element.fontFamily) freeformStyle.fontFamily = `'${element.fontFamily}', sans-serif`;
+    if (element.fontWeight !== undefined) freeformStyle.fontWeight = element.fontWeight;
+    if (element.color) freeformStyle.color = element.color;
+    if (element.opacity !== undefined) freeformStyle.opacity = element.opacity;
+
+    const hasStyleOverrides = Object.keys(freeformStyle).length > 0;
+
     return (
       <FreeformElement
         key={element.id}
@@ -863,7 +900,7 @@ function SlideRendererComponent({
         otherElements={slide.elements}
         onGuidesChange={setGuides}
       >
-        {baseElement}
+        {hasStyleOverrides ? <div style={freeformStyle}>{baseElement}</div> : baseElement}
       </FreeformElement>
     );
   };

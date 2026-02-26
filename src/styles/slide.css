@@ -37,13 +37,11 @@
   --font-subtitle: 'Archivo', sans-serif;
   --font-tag: 'Archivo', sans-serif;
   --font-quote: 'Archivo', sans-serif;
-  --font-stat: 'Archivo', sans-serif;
   --weight-heading: 700;
   --weight-paragraph: 400;
   --weight-subtitle: 500;
   --weight-tag: 700;
   --weight-quote: 500;
-  --weight-stat: 900;
 
   font-family: 'Archivo', sans-serif;
   width: 1080px;
@@ -71,7 +69,7 @@
 /* (colors applied in main declarations below) */
 
 /* Bare divs in content area (quote-text etc) */
-.slide .sc > div:not(.cover-emoji):not(.img-area):not(.img-bg):not(.stats-grid):not(.stat-item):not(.list-item):not(.highlight-block):not(.divider-line) {
+.slide .sc > div:not(.cover-emoji):not(.img-area):not(.img-bg):not(.list-item):not(.highlight-block):not(.divider-line) {
   font-family: 'Archivo', sans-serif;
   font-size: 38px;
   font-weight: 400;
@@ -99,7 +97,7 @@
   justify-content: center;
   align-items: center;
   padding: 60px 100px;
-  gap: 24px;
+  gap: var(--element-gap, 24px);
   text-align: center;
   zoom: var(--font-scale, 1);
 }
@@ -219,34 +217,6 @@
   color: var(--text);
   text-align: center;
   text-wrap: balance;
-}
-
-/* Stats grid */
-.slide .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 32px;
-}
-
-.slide .stat-item {
-  text-align: center;
-  background: var(--card-bg);
-  border-radius: 16px;
-  padding: 24px 16px;
-}
-
-.slide .stat-value {
-  font-family: var(--font-stat);
-  font-size: 64px;
-  font-weight: var(--weight-stat);
-  color: var(--highlight);
-  line-height: 1;
-}
-
-.slide .stat-label {
-  font-size: 24px;
-  color: var(--accent);
-  margin-top: 8px;
 }
 
 /* List items */
@@ -447,7 +417,6 @@
 .slide-freeform .freeform-element .sub,
 .slide-freeform .freeform-element .quote-text,
 .slide-freeform .freeform-element .highlight-block,
-.slide-freeform .freeform-element .stats-grid,
 .slide-freeform .freeform-element .list-item {
   text-align: inherit; /* Inherit from freeform wrapper (supports inline textAlign) */
   width: 100%;

@@ -77,28 +77,7 @@ export const SLIDE_TEMPLATES: SlideTemplate[] = [
     },
   },
 
-  // 6. Estatisticas
-  {
-    name: 'Estat\u00edsticas',
-    icon: '\u{1F4CA}',
-    slide: {
-      layout: 'stats',
-      elements: [
-        { id: '_tpl_h2', type: 'heading', level: 2, content: 'Em n\u00fameros', textAlign: 'center' },
-        {
-          id: '_tpl_stat',
-          type: 'stat',
-          items: [
-            { value: '100+', label: 'Clientes' },
-            { value: '50k', label: 'Seguidores' },
-            { value: '98%', label: 'Satisfa\u00e7\u00e3o' },
-          ],
-        },
-      ] as SlideElement[],
-    },
-  },
-
-  // 7. Destaque
+  // 6. Destaque
   {
     name: 'Destaque',
     icon: '\u2728',

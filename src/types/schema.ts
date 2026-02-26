@@ -12,7 +12,6 @@ export type ElementType =
   | 'image'
   | 'overlay'
   | 'quote'
-  | 'stat'
   | 'list-item'
   | 'highlight'
   | 'divider'
@@ -32,6 +31,11 @@ export interface BaseElement {
   h?: number;
   rotation?: number;
   zIndex?: number;
+  // Per-element style overrides
+  fontFamily?: string;
+  fontWeight?: number;
+  color?: string;
+  opacity?: number;
 }
 
 export interface TagElement extends BaseElement {
@@ -68,6 +72,7 @@ export interface ImageElement extends BaseElement {
   objectPosition?: string;
   variant: 'area' | 'background' | 'inline';
   borderRadius?: number;
+  imageHeight?: number;
 }
 
 export interface OverlayElement extends BaseElement {
@@ -79,26 +84,35 @@ export interface QuoteElement extends BaseElement {
   type: 'quote';
   content: string;
   attribution?: string;
-}
-
-export interface StatElement extends BaseElement {
-  type: 'stat';
-  items: Array<{ value: string; label: string }>;
+  quoteMarkColor?: string;
+  quoteMarkSize?: number;
+  quoteMarkOpacity?: number;
 }
 
 export interface ListItemElement extends BaseElement {
   type: 'list-item';
   icon?: string;
   content: string;
+  iconSize?: number;
+  iconColor?: string;
 }
 
 export interface HighlightElement extends BaseElement {
   type: 'highlight';
   content: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderRadius?: number;
+  padding?: number;
 }
 
 export interface DividerElement extends BaseElement {
   type: 'divider';
+  dividerColor?: string;
+  dividerWidth?: number;
+  dividerHeight?: number;
+  borderRadius?: number;
+  dividerOpacity?: number;
 }
 
 export interface SpacerElement extends BaseElement {
@@ -115,7 +129,6 @@ export type SlideElement =
   | ImageElement
   | OverlayElement
   | QuoteElement
-  | StatElement
   | ListItemElement
   | HighlightElement
   | DividerElement
@@ -128,7 +141,6 @@ export type SlideLayout =
   | 'image-top'
   | 'image-bottom'
   | 'image-full'
-  | 'stats'
   | 'quote'
   | 'list'
   | 'highlight'
@@ -173,7 +185,6 @@ export interface ThemeTypography {
   subtitle: TypographyStyle;
   tag: TypographyStyle;
   quote: TypographyStyle;
-  stat: TypographyStyle;
 }
 
 export interface Theme {
@@ -181,6 +192,7 @@ export interface Theme {
   colors: ThemeColors;
   typography: ThemeTypography;
   fontScale: number;
+  elementGap?: number;
 }
 
 // ─── Full Schema ────────────────────────────────────────────
@@ -246,7 +258,6 @@ export const DEFAULT_THEME_DARK: Theme = {
     subtitle: { family: 'Archivo', weight: 500 },
     tag: { family: 'Archivo', weight: 700 },
     quote: { family: 'Archivo', weight: 500 },
-    stat: { family: 'Archivo', weight: 900 },
   },
   fontScale: 1,
 };
@@ -274,7 +285,6 @@ export const DEFAULT_THEME_LIGHT: Theme = {
     subtitle: { family: 'Archivo', weight: 500 },
     tag: { family: 'Archivo', weight: 700 },
     quote: { family: 'Archivo', weight: 500 },
-    stat: { family: 'Archivo', weight: 900 },
   },
   fontScale: 1,
 };

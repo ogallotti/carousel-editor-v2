@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getGradientPresets, saveGradientPreset, deleteGradientPreset } from '@/lib/gradient-presets';
+import type { GradientPreset } from '@/lib/db';
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -9,6 +12,7 @@ interface GradientEditorProps {
   value: string;
   onChange: (cssValue: string) => void;
   presets?: Array<{ label: string; fill: string }>;
+  category?: 'background' | 'overlay';
 }
 
 interface RGBA {
@@ -245,12 +249,15 @@ function gradientToCSS(state: GradientState): string {
 
 // ─── Component ───────────────────────────────────────────────────
 
-export function GradientEditor({ value, onChange, presets }: GradientEditorProps) {
+export function GradientEditor({ value, onChange, presets, category }: GradientEditorProps) {
   const [state, setState] = useState<GradientState>(() => parseCSSGradient(value));
   const [selectedStopId, setSelectedStopId] = useState<string | null>(
     () => state.stops[0]?.id ?? null,
   );
   const [showCSS, setShowCSS] = useState(false);
+  const [savedPresets, setSavedPresets] = useState<GradientPreset[]>([]);
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [presetName, setPresetName] = useState('');
   const barRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef<string | null>(null);
 
@@ -264,6 +271,24 @@ export function GradientEditor({ value, onChange, presets }: GradientEditorProps
       lastEmittedRef.current = value;
     }
   }, [value]);
+
+  // Load saved gradient presets
+  useEffect(() => {
+    getGradientPresets(category ?? 'overlay').then(setSavedPresets);
+  }, [category]);
+
+  const handleSavePreset = useCallback(async () => {
+    if (!presetName.trim()) return;
+    await saveGradientPreset({
+      name: presetName.trim(),
+      fill: value,
+      category: category ?? 'overlay',
+      createdAt: new Date(),
+    });
+    setSavedPresets(await getGradientPresets(category ?? 'overlay'));
+    setShowSaveInput(false);
+    setPresetName('');
+  }, [presetName, value, category]);
 
   // Track pending emission — avoids calling onChange during render
   const pendingEmitRef = useRef<string | null>(null);
@@ -490,6 +515,64 @@ export function GradientEditor({ value, onChange, presets }: GradientEditorProps
               {preset.label}
             </button>
           ))}
+
+          {/* Saved presets */}
+          {savedPresets.map((sp) => (
+            <div key={sp.id} className="relative inline-flex">
+              <button
+                type="button"
+                onClick={() => onChange(sp.fill)}
+                className={cn(
+                  'rounded-md border px-2 py-1 text-[11px] transition-colors pr-6',
+                  value === sp.fill
+                    ? 'border-primary/50 bg-primary/10 text-primary'
+                    : 'border-border bg-muted/50 text-foreground hover:bg-muted'
+                )}
+              >
+                {sp.name}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await deleteGradientPreset(sp.id!);
+                  setSavedPresets(await getGradientPresets(category ?? 'overlay'));
+                }}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+
+          {/* Save button */}
+          {showSaveInput ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Nome"
+                className="h-6 w-24 rounded border border-border bg-transparent px-1.5 text-[11px]"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSavePreset(); if (e.key === 'Escape') setShowSaveInput(false); }}
+              />
+              <button
+                type="button"
+                onClick={handleSavePreset}
+                className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+              >
+                OK
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSaveInput(true)}
+              className="rounded-md border border-dashed border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted/50"
+            >
+              + Salvar
+            </button>
+          )}
         </div>
       </div>
 

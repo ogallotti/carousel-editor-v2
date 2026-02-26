@@ -34,7 +34,6 @@ export function themeToCSVars(theme: Theme): Record<string, string> {
     '--font-subtitle': `'${typography.subtitle.family}', sans-serif`,
     '--font-tag': `'${typography.tag.family}', sans-serif`,
     '--font-quote': `'${typography.quote.family}', sans-serif`,
-    '--font-stat': `'${typography.stat.family}', sans-serif`,
 
     // Typography — weights
     '--weight-heading': String(typography.heading.weight),
@@ -42,11 +41,14 @@ export function themeToCSVars(theme: Theme): Record<string, string> {
     '--weight-subtitle': String(typography.subtitle.weight),
     '--weight-tag': String(typography.tag.weight),
     '--weight-quote': String(typography.quote.weight),
-    '--weight-stat': String(typography.stat.weight),
 
     // Font scale
     '--font-scale': String(fontScale),
   };
+
+  if (theme.elementGap !== undefined) {
+    vars['--element-gap'] = `${theme.elementGap}px`;
+  }
 
   return vars;
 }

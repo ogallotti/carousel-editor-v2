@@ -142,6 +142,7 @@ function EditorInner({
     deleteElement: actions.deleteElement,
     duplicateElement: actions.duplicateElement,
     moveElement: actions.moveElement,
+    reorderElement: actions.reorderElement,
     setTheme: actions.setTheme,
     setSlideBg: actions.setSlideBg,
     setSlideBgImage: actions.setSlideBgImage,

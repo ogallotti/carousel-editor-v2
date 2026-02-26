@@ -42,6 +42,14 @@ export interface CustomTheme {
   createdAt: Date;
 }
 
+export interface GradientPreset {
+  id?: number;
+  name: string;
+  fill: string;
+  category: 'background' | 'overlay';
+  createdAt: Date;
+}
+
 // ─── Database Definition ────────────────────────────────────
 
 const db = new Dexie('CarouselEditor') as Dexie & {
@@ -50,6 +58,7 @@ const db = new Dexie('CarouselEditor') as Dexie & {
   assets: EntityTable<Asset, 'id'>;
   settings: EntityTable<UserSettings, 'key'>;
   customThemes: EntityTable<CustomTheme, 'name'>;
+  gradientPresets: EntityTable<GradientPreset, 'id'>;
 };
 
 db.version(1).stores({
@@ -58,6 +67,15 @@ db.version(1).stores({
   assets: 'id, projectId, filename, [projectId+filename]',
   settings: 'key',
   customThemes: 'name',
+});
+
+db.version(2).stores({
+  projects: 'id, title, updatedAt, format',
+  projectData: 'projectId',
+  assets: 'id, projectId, filename, [projectId+filename]',
+  settings: 'key',
+  customThemes: 'name',
+  gradientPresets: '++id, name, category',
 });
 
 export { db };

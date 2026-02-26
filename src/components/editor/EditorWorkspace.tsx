@@ -22,6 +22,7 @@ export interface EditorActions {
   deleteElement: (slideIndex: number, elementId: string) => void;
   duplicateElement: (slideIndex: number, elementId: string) => void;
   moveElement: (slideIndex: number, elementId: string, direction: 'up' | 'down') => void;
+  reorderElement: (slideIndex: number, elementId: string, newIndex: number) => void;
   setTheme: (theme: Theme) => void;
   setSlideBg: (slideIndex: number, color: string | undefined) => void;
   setSlideBgImage: (slideIndex: number, image: string | undefined) => void;
@@ -84,6 +85,13 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
   const handleMoveElement = useCallback(
     (elementId: string, direction: 'up' | 'down') => {
       actions.moveElement(selectedSlideIndex, elementId, direction);
+    },
+    [selectedSlideIndex, actions]
+  );
+
+  const handleReorderElement = useCallback(
+    (elementId: string, newIndex: number) => {
+      actions.reorderElement(selectedSlideIndex, elementId, newIndex);
     },
     [selectedSlideIndex, actions]
   );
@@ -413,6 +421,7 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
             onUpdateElement={handleUpdateElement}
             onDeleteElement={handleDeleteElement}
             onMoveElement={handleMoveElement}
+            onReorderElement={handleReorderElement}
             onSetTheme={actions.setTheme}
             onSetSlideBg={handleSetSlideBg}
             slideBgImage={currentSlide?.backgroundImage ?? undefined}

@@ -11,7 +11,6 @@ import {
   Smile,
   Image,
   Quote,
-  BarChart3,
   ListChecks,
   Sparkles,
   Minus,
@@ -93,11 +92,6 @@ const ELEMENT_BUTTONS: ElementButtonDef[] = [
     label: 'Cita\u00e7\u00e3o',
     icon: <Quote className="size-4" />,
     create: () => ({ id: nanoid(), type: 'quote', content: 'Cita\u00e7\u00e3o aqui...', textAlign: 'center' as const }),
-  },
-  {
-    label: 'Estat\u00edsticas',
-    icon: <BarChart3 className="size-4" />,
-    create: () => ({ id: nanoid(), type: 'stat', items: [{ value: '100', label: 'M\u00e9trica' }] }),
   },
   {
     label: 'Item de Lista',

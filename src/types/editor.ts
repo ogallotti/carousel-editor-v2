@@ -30,6 +30,7 @@ export type EditorAction =
   | { type: 'DELETE_ELEMENT'; payload: { slideIndex: number; elementId: string } }
   | { type: 'DUPLICATE_ELEMENT'; payload: { slideIndex: number; elementId: string } }
   | { type: 'MOVE_ELEMENT'; payload: { slideIndex: number; elementId: string; direction: 'up' | 'down' } }
+  | { type: 'REORDER_ELEMENT'; payload: { slideIndex: number; elementId: string; newIndex: number } }
   | { type: 'SET_THEME'; payload: Theme }
   | { type: 'SET_FOOTER'; payload: string }
   | { type: 'SET_HANDLE'; handle: string }

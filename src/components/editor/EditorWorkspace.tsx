@@ -356,7 +356,7 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
       {/* Left Panel */}
       <div
         className={cn(
-          'editor-panel flex-shrink-0 border-r border-border/40 transition-all duration-200',
+          'editor-panel flex-shrink-0 h-full flex flex-col border-r border-border/40 transition-all duration-200',
           leftPanelOpen ? 'w-64' : 'w-0'
         )}
       >

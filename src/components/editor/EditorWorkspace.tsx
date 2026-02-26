@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { SlideRenderer } from './SlideRenderer';
 import { LeftPanel } from './LeftPanel';
 import { RightPanel, BG_PSEUDO_ID } from './RightPanel';
-import type { Slide, SlideElement, Theme, ElementType } from '@/types/schema';
+import type { Slide, SlideElement, SlideLayout, Theme, ElementType } from '@/types/schema';
 import type { EditorState } from '@/types/editor';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,7 @@ export interface EditorActions {
   setSlideBg: (slideIndex: number, color: string | undefined) => void;
   setSlideBgImage: (slideIndex: number, image: string | undefined) => void;
   setSlideBgPosition: (slideIndex: number, position: string | undefined) => void;
+  setSlideLayout: (slideIndex: number, layout: SlideLayout, elementUpdates?: Record<string, Partial<SlideElement>>) => void;
 }
 
 interface EditorWorkspaceProps {
@@ -160,6 +161,13 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
   const handleSetSlideBgPosition = useCallback(
     (pos: string | undefined) => {
       actions.setSlideBgPosition(selectedSlideIndex, pos);
+    },
+    [selectedSlideIndex, actions]
+  );
+
+  const handleSetSlideLayout = useCallback(
+    (layout: SlideLayout, elementUpdates?: Record<string, Partial<SlideElement>>) => {
+      actions.setSlideLayout(selectedSlideIndex, layout, elementUpdates);
     },
     [selectedSlideIndex, actions]
   );
@@ -340,6 +348,7 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
                   onDeleteElement={isActive ? handleDeleteElement : undefined}
                   onDuplicateElement={isActive ? handleDuplicateElement : undefined}
                   onUpdateSlideBgPosition={isActive ? handleSetSlideBgPosition : undefined}
+                  onSetSlideLayout={isActive ? handleSetSlideLayout : undefined}
                   scale={slideScale}
                   projectId={projectId}
                 />

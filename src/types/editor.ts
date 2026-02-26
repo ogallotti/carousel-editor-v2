@@ -2,7 +2,7 @@
 // Editor State Types
 // ============================================================
 
-import type { CarouselSchema, Slide, SlideElement, Theme } from './schema';
+import type { CarouselSchema, Slide, SlideElement, SlideLayout, Theme } from './schema';
 
 export interface EditorState {
   carousel: CarouselSchema;
@@ -38,6 +38,7 @@ export type EditorAction =
   | { type: 'SET_SLIDE_BG'; payload: { slideIndex: number; color: string | undefined } }
   | { type: 'SET_SLIDE_BG_IMAGE'; payload: { slideIndex: number; image: string | undefined } }
   | { type: 'SET_SLIDE_BG_POSITION'; payload: { slideIndex: number; position: string | undefined } }
+  | { type: 'SET_SLIDE_LAYOUT'; payload: { slideIndex: number; layout: SlideLayout; elementUpdates?: Record<string, Partial<SlideElement>> } }
   | { type: 'TOGGLE_PREVIEW'; payload?: undefined }
   | { type: 'SET_VIEW_MODE'; payload: 'horizontal' | 'grid' }
   | { type: 'SET_ZOOM'; payload: number }

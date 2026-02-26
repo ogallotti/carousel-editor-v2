@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
-import { Copy, Trash2, Image } from 'lucide-react';
-import type { Slide, SlideElement, Theme, ElementType, OverlayElement, HighlightElement, QuoteElement, ListItemElement, DividerElement, ImageElement } from '@/types/schema';
+import { Copy, Trash2, Image, LayoutGrid, Move } from 'lucide-react';
+import type { Slide, SlideElement, SlideLayout, Theme, ElementType, OverlayElement, HighlightElement, QuoteElement, ListItemElement, DividerElement, ImageElement } from '@/types/schema';
 import type { GuideLine } from '@/hooks/useSmartGuides';
 import { themeToCSVars } from '@/lib/theme-utils';
 import { useAssetContext } from '@/lib/asset-urls';
@@ -42,6 +42,7 @@ interface SlideRendererProps {
   onDeleteElement?: (elementId: string) => void;
   onDuplicateElement?: (elementId: string) => void;
   onUpdateSlideBgPosition?: (pos: string) => void;
+  onSetSlideLayout?: (layout: SlideLayout, elementUpdates?: Record<string, Partial<SlideElement>>) => void;
   scale?: number;
   projectId?: string;
 }
@@ -172,6 +173,7 @@ function SlideRendererComponent({
   onDeleteElement,
   onDuplicateElement,
   onUpdateSlideBgPosition,
+  onSetSlideLayout,
   scale,
   projectId,
 }: SlideRendererProps) {
@@ -192,6 +194,8 @@ function SlideRendererComponent({
   const counter = `${String(slideNumber).padStart(2, '0')}/${String(totalSlides).padStart(2, '0')}`;
 
   const displayScale = scale ?? 0.375;
+  const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
+  const slideRef = useRef<HTMLDivElement>(null);
 
   const themeVars = themeToCSVars(theme);
 
@@ -386,6 +390,53 @@ function SlideRendererComponent({
     },
     [projectId, registerAssetUrl, slide.elements, onUpdateElement]
   );
+
+  // ── Layout conversion handlers ──────────────────────────────
+  const handleConvertToFreeform = useCallback(() => {
+    if (!onSetSlideLayout || !slideRef.current) return;
+    const container = slideRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const scaleX = 1080 / containerRect.width;
+    const scaleY = 1440 / containerRect.height;
+
+    const elementUpdates: Record<string, Partial<SlideElement>> = {};
+    for (const el of slide.elements) {
+      if (el.type === 'overlay') {
+        elementUpdates[el.id] = { x: 0, y: 0, w: 1080, h: 1440 };
+        continue;
+      }
+      const dom = container.querySelector(`[data-element-id="${el.id}"]`) as HTMLElement | null;
+      if (dom) {
+        const rect = dom.getBoundingClientRect();
+        elementUpdates[el.id] = {
+          x: Math.round((rect.left - containerRect.left) * scaleX),
+          y: Math.round((rect.top - containerRect.top) * scaleY),
+          w: Math.round(rect.width * scaleX),
+          h: Math.round(rect.height * scaleY),
+        };
+      }
+    }
+    onSetSlideLayout('freeform', elementUpdates);
+  }, [onSetSlideLayout, slide.elements]);
+
+  const handleConvertToFlow = useCallback((targetLayout: SlideLayout) => {
+    if (!onSetSlideLayout) return;
+    onSetSlideLayout(targetLayout);
+    setLayoutPickerOpen(false);
+  }, [onSetSlideLayout]);
+
+  const FLOW_LAYOUTS: { value: SlideLayout; label: string }[] = [
+    { value: 'title-body', label: 'Título + Corpo' },
+    { value: 'cover', label: 'Capa' },
+    { value: 'full-text', label: 'Texto' },
+    { value: 'image-top', label: 'Imagem Topo' },
+    { value: 'image-bottom', label: 'Imagem Base' },
+    { value: 'image-full', label: 'Imagem Full' },
+    { value: 'quote', label: 'Citação' },
+    { value: 'list', label: 'Lista' },
+    { value: 'highlight', label: 'Destaque' },
+    { value: 'cta', label: 'CTA' },
+  ];
 
   const editableProps = (elementId: string) =>
     isEditing
@@ -894,6 +945,7 @@ function SlideRendererComponent({
         }}
       >
         <div
+          ref={slideRef}
           className={cn(
             "slide-renderer slide",
             slide.layout === 'freeform' && "slide-freeform"
@@ -907,7 +959,7 @@ function SlideRendererComponent({
             height: 1440,
             zoom: displayScale,
           }}
-          onClick={() => { if (!isBgCropping) onSelectElement(null); }}
+          onClick={() => { if (!isBgCropping) onSelectElement(null); setLayoutPickerOpen(false); }}
           onDoubleClick={handleSlideBgDoubleClick}
         >
           {/* Background crop overlay — captures all mouse events when in bg crop mode */}
@@ -922,6 +974,89 @@ function SlideRendererComponent({
               onMouseDown={handleBgCropDragStart}
               data-editor-control
             />
+          )}
+
+          {/* Layout toggle button — editor only */}
+          {isEditing && onSetSlideLayout && (
+            <div
+              data-editor-control
+              style={{
+                position: 'absolute',
+                bottom: 16,
+                right: 16,
+                zIndex: 99998,
+              }}
+            >
+              {slide.layout === 'freeform' ? (
+                // Freeform → Flow: show layout picker
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setLayoutPickerOpen(!layoutPickerOpen); }}
+                    title="Converter para layout padrão"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 14px', borderRadius: 8,
+                      background: 'rgba(0,0,0,0.7)', color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      cursor: 'pointer', fontSize: 22,
+                      backdropFilter: 'blur(8px)',
+                    }}
+                  >
+                    <LayoutGrid style={{ width: 22, height: 22 }} />
+                    <span style={{ fontSize: 20 }}>Layout</span>
+                  </button>
+                  {layoutPickerOpen && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute', bottom: '100%', right: 0, marginBottom: 8,
+                        background: 'rgba(15,15,15,0.95)', border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 10, padding: 6, minWidth: 200,
+                        backdropFilter: 'blur(12px)',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                      }}
+                    >
+                      {FLOW_LAYOUTS.map((l) => (
+                        <button
+                          key={l.value}
+                          type="button"
+                          onClick={() => handleConvertToFlow(l.value)}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '8px 12px', borderRadius: 6,
+                            background: 'transparent', color: '#fff',
+                            border: 'none', cursor: 'pointer', fontSize: 20,
+                          }}
+                          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
+                          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent'; }}
+                        >
+                          {l.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Flow → Freeform: direct conversion
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleConvertToFreeform(); }}
+                  title="Converter para freeform"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 14px', borderRadius: 8,
+                    background: 'rgba(0,0,0,0.7)', color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    cursor: 'pointer', fontSize: 22,
+                    backdropFilter: 'blur(8px)',
+                  }}
+                >
+                  <Move style={{ width: 22, height: 22 }} />
+                  <span style={{ fontSize: 20 }}>Freeform</span>
+                </button>
+              )}
+            </div>
           )}
 
           {/* Header */}

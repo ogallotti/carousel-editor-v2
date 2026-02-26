@@ -147,6 +147,7 @@ function EditorInner({
     setSlideBg: actions.setSlideBg,
     setSlideBgImage: actions.setSlideBgImage,
     setSlideBgPosition: actions.setSlideBgPosition,
+    setSlideLayout: actions.setSlideLayout,
   };
 
   return (

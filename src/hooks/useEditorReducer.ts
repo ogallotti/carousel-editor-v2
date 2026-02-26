@@ -1,7 +1,7 @@
 'use client';
 
 import { useReducer, useCallback, useMemo } from 'react';
-import type { CarouselSchema, Slide, SlideElement, Theme } from '@/types/schema';
+import type { CarouselSchema, Slide, SlideElement, SlideLayout, Theme } from '@/types/schema';
 import type { EditorState, EditorAction } from '@/types/editor';
 import { DEFAULT_THEME_DARK, createEmptySchema } from '@/types/schema';
 import { nanoid } from '@/lib/nanoid';
@@ -221,6 +221,38 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...s, carousel: { ...s.carousel, slides } };
     }
 
+    case 'SET_SLIDE_LAYOUT': {
+      const s = pushUndo(state);
+      const slides = [...s.carousel.slides];
+      const slide = { ...slides[action.payload.slideIndex] };
+      const toFreeform = action.payload.layout === 'freeform';
+
+      slide.layout = action.payload.layout;
+      slide.elements = slide.elements.map((el): SlideElement => {
+        if (toFreeform) {
+          // Apply calculated positions from DOM (or defaults for overlays)
+          const updates = action.payload.elementUpdates?.[el.id];
+          if (updates) return { ...el, ...updates } as SlideElement;
+          // Overlay fallback: full-slide
+          if (el.type === 'overlay') return { ...el, x: 0, y: 0, w: 1080, h: 1440 };
+          return el;
+        } else {
+          // Freeform → Flow: strip freeform-specific props
+          const cleaned = { ...el };
+          delete cleaned.x;
+          delete cleaned.y;
+          delete cleaned.w;
+          delete cleaned.h;
+          delete cleaned.rotation;
+          delete cleaned.zIndex;
+          return cleaned as SlideElement;
+        }
+      });
+
+      slides[action.payload.slideIndex] = slide;
+      return { ...s, carousel: { ...s.carousel, slides }, selectedElementId: null };
+    }
+
     case 'TOGGLE_PREVIEW':
       return { ...state, isPreviewMode: !state.isPreviewMode };
 
@@ -287,6 +319,8 @@ export function useEditorReducer(initialCarousel?: CarouselSchema) {
     dispatch({ type: 'SET_SLIDE_BG_IMAGE', payload: { slideIndex, image } }), []);
   const setSlideBgPosition = useCallback((slideIndex: number, position: string | undefined) =>
     dispatch({ type: 'SET_SLIDE_BG_POSITION', payload: { slideIndex, position } }), []);
+  const setSlideLayout = useCallback((slideIndex: number, layout: SlideLayout, elementUpdates?: Record<string, Partial<SlideElement>>) =>
+    dispatch({ type: 'SET_SLIDE_LAYOUT', payload: { slideIndex, layout, elementUpdates } }), []);
   const togglePreview = useCallback(() => dispatch({ type: 'TOGGLE_PREVIEW' }), []);
   const setViewMode = useCallback((mode: 'horizontal' | 'grid') => dispatch({ type: 'SET_VIEW_MODE', payload: mode }), []);
   const setZoom = useCallback((zoom: number) => dispatch({ type: 'SET_ZOOM', payload: zoom }), []);
@@ -297,11 +331,11 @@ export function useEditorReducer(initialCarousel?: CarouselSchema) {
   const actions = useMemo(() => ({
     setCarousel, selectSlide, selectElement, updateSlide, addSlide, deleteSlide,
     moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement, reorderElement,
-    setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
+    setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, setSlideLayout, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
   }), [
     setCarousel, selectSlide, selectElement, updateSlide, addSlide, deleteSlide,
     moveSlide, duplicateSlide, updateElement, addElement, deleteElement, duplicateElement, moveElement, reorderElement,
-    setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
+    setTheme, setFooter, setHandle, setShowCounter, setSlideBg, setSlideBgImage, setSlideBgPosition, setSlideLayout, togglePreview, setViewMode, setZoom, undo, redo, markSaved,
   ]);
 
   return { state, actions, dispatch };

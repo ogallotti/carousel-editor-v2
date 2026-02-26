@@ -11,14 +11,16 @@ Ideia → Estratégia → Direção Visual → Imagens → Schema JSON → ZIP i
 
 Este skill executa o pipeline completo para criar carrosséis profissionais para Instagram. O output final é um arquivo `.zip` contendo `schema.json` + `assets/` importável pelo Carousel Editor V2.
 
-**O pipeline tem 4 fases:**
+**O pipeline tem 5 fases:**
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
-│ 1. ESTRATÉGIA│ →  │ 2. CRIATIVO  │ →  │ 3. IMAGENS   │ →  │ 4. MONTAGEM │
-│ Brief + Copy │    │ Visual Dir.  │    │ API Generate │    │ JSON + ZIP  │
-└─────────────┘    └──────────────┘    └──────────────┘    └─────────────┘
+┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
+│ 1. ESTRATÉGIA│ →  │ 2. APROVAÇÃO │ →  │ 3. CRIATIVO  │ →  │ 4. IMAGENS   │ →  │ 5. MONTAGEM │
+│ Brief + Copy │    │ Copy c/ user │    │ Visual Dir.  │    │ API Generate │    │ JSON + ZIP  │
+└─────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └─────────────┘
 ```
+
+**IMPORTANTE**: Nunca avançar para imagens ou montagem sem o usuário aprovar a copy.
 
 ## Fase 1: Estratégia
 
@@ -64,7 +66,7 @@ Planejar a sequência de slides seguindo uma progressão clara:
 **Regras editoriais (não negociar):**
 - 8 a 12 slides (sweet spot para Instagram)
 - Uma ideia central por slide
-- Até ~40% de slides só texto (o resto precisa de imagem)
+- **Mínimo ~80% de slides freeform** (com backgroundImage + overlay + texto posicionado). Máximo ~20% texto puro (list, quote, highlight)
 - CTA final único (salvar **ou** comentar **ou** compartilhar — nunca 3 de uma vez)
 - Progressão lógica: dor → tensão → método → prova → CTA
 - Linguagem concreta, sem abstração vazia
@@ -80,7 +82,48 @@ python3 .claude/skills/carousel-zip-generator/scripts/build_prompt_pack.py \
 
 Gera prompts estruturados para título tipográfico + cena editorial + cenas narrativas.
 
-## Fase 2: Criativo (Direção Visual)
+## Fase 2: Aprovação da Copy
+
+**PARAR AQUI e apresentar a copy ao usuário antes de avançar.**
+
+Depois de definir o brief e a estrutura narrativa, apresentar ao usuário:
+
+1. **Título do carrossel**
+2. **Sequência completa de slides** — para cada slide mostrar:
+   - Número e função (Hook, Problema, Método, etc.)
+   - Tag (se houver)
+   - Heading (título do slide)
+   - Texto do corpo (parágrafo)
+3. **CTA final**
+
+Formato sugerido para apresentação:
+
+```
+📋 COPY DO CARROSSEL: "Título"
+
+Slide 1 (HOOK): "Frase de impacto"
+→ "Subtítulo ou complemento"
+
+Slide 2 (PROBLEMA): TAG: CONTEXTO
+→ "Heading do slide"
+→ "Texto do corpo explicando a dor..."
+
+Slide 3 (MÉTODO): TAG: COMO FUNCIONA
+→ "Heading do slide"
+→ "Texto do corpo com o método..."
+
+[...]
+
+Slide 10 (CTA):
+→ "Frase de fechamento"
+→ "Call-to-action"
+```
+
+**Aguardar aprovação explícita do usuário.** Ajustar o que for pedido. Só avançar para Fase 3 (Direção Visual) após "ok", "aprovado", "pode seguir" ou equivalente.
+
+---
+
+## Fase 3: Criativo (Direção Visual)
 
 **Travar antes de gerar qualquer imagem.** Tratar o carrossel como ensaio fotográfico único.
 
@@ -129,7 +172,7 @@ Descrever de forma concreta (não usar "bonito", "premium" sem detalhes):
 - **Lente**: 35mm wide, 50mm natural, 85mm portrait, macro...
 - **Atmosfera**: noturno, amanhecer, studio, urbano...
 
-## Fase 3: Geração de Imagens
+## Fase 4: Geração de Imagens
 
 Para detalhes completos de prompts e checklist, ler `references/image-generation-playbook.md`.
 Para documentação da API de geração, ler `references/kie-api.md`.
@@ -239,7 +282,7 @@ assets/
 
 **Formatos aceitos**: `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`, `.svg`
 
-## Fase 4: Montagem (Schema JSON + ZIP)
+## Fase 5: Montagem (Schema JSON + ZIP)
 
 ### 4.1 Gerar Scaffold
 
@@ -430,7 +473,7 @@ Informar ao usuário:
 1. **Travar direção visual antes de gerar qualquer imagem**
 2. **Consistência**: paleta, luz e textura iguais em todas as cenas
 3. **Título tipográfico separado** (fundo transparente, nunca dentro da cena)
-4. **Máximo ~40% slides sem imagem**
+4. **Mínimo ~80% slides freeform** (máximo ~20% sem imagem)
 5. **Progressão narrativa clara**: dor → tensão → método → prova → CTA
 6. **CTA único** (uma ação, sem múltiplos pedidos)
 7. **Uma ideia por slide** — se precisou de "e também", dividir em 2 slides

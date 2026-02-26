@@ -181,9 +181,9 @@ def validate(data):
 
     if slides:
         ratio = text_only_count / len(slides)
-        if ratio > 0.4:
+        if ratio > 0.2:
             warnings.append(
-                f"Slides so texto em excesso ({text_only_count}/{len(slides)} = {ratio:.0%}). Meta: ate ~40%."
+                f"Slides so texto em excesso ({text_only_count}/{len(slides)} = {ratio:.0%}). Meta: ate ~20% (minimo 80% freeform)."
             )
 
     return errors, warnings

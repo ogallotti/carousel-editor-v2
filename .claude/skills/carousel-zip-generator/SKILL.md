@@ -21,16 +21,20 @@ Este skill executa o pipeline completo para criar carrosséis profissionais para
    Onde `{slug}` é o título do carrossel em kebab-case (ex: `carousel-5-erros-de-copy`). Todos os assets, schema.json e o ZIP final ficam dentro dessa pasta.
 3. **Ao finalizar a sessão**: Salvar no auto-memory as preferências do usuário que foram reveladas durante o trabalho (handle, marca, tom preferido, ajustes recorrentes de copy, direção visual favorita). Isso evita repetir as mesmas perguntas em sessões futuras.
 
-**O pipeline tem 5 fases:**
+**O pipeline tem 5 fases com 3 pontos de aprovação:**
 
 ```
 ┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
 │ 1. ESTRATÉGIA│ →  │ 2. APROVAÇÃO │ →  │ 3. CRIATIVO  │ →  │ 4. IMAGENS   │ →  │ 5. MONTAGEM │
 │ Brief + Copy │    │ Copy c/ user │    │ Visual Dir.  │    │ API Generate │    │ JSON + ZIP  │
-└─────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └─────────────┘
+└─────────────┘    └──────▲───────┘    └──────▲───────┘    └──────▲───────┘    └─────────────┘
+                   APROVAÇÃO 1:         APROVAÇÃO 2:         APROVAÇÃO 3:
+                   Copy (feedback       Design (paleta,      Hero editorial
+                   aberto, sem          tipografia,          (antes de gerar
+                   AskUserQuestion)     direção visual)      as cenas)
 ```
 
-**IMPORTANTE**: Nunca avançar para imagens ou montagem sem o usuário aprovar a copy.
+**IMPORTANTE**: Nunca avançar para a próxima fase sem aprovação explícita do usuário.
 
 ## Fase 1: Estratégia
 
@@ -62,15 +66,17 @@ Para regras de escrita e anti-padrões de IA na copy, ler `references/copy-direc
 
 ### 1.2 Definir a Estrutura Narrativa
 
-Planejar a sequência de slides seguindo uma progressão clara:
+Planejar a sequência de slides como um arco narrativo. Cada slide tem uma FUNÇÃO no arco. Os ELEMENTOS que compõem cada slide devem ser escolhidos com base no conteúdo específico daquele slide, não copiados de um template.
 
-| # | Função | Layout |
-|---|--------|--------|
-| 1 | **Hook** — título que para o scroll | `freeform` + backgroundImage + overlay + texto na base |
-| 2 | **Problema** — dor que o público sente | `freeform` + backgroundImage + overlay + tag topo + texto base |
-| 3-7 | **Desenvolvimento** — método, exemplos, provas | `freeform` + backgroundImage (slides com imagem) OU `list`/`quote`/`highlight` (slides texto puro) |
-| 8-9 | **Virada** — insight ou resultado | `freeform` + backgroundImage OU `quote` |
-| 10 | **CTA** — uma ação clara | `freeform` + backgroundImage + overlay + texto na base |
+**Arco narrativo (funções, não templates):**
+
+1. **Hook** — para o scroll. Uma frase, um dado, uma imagem. Menos é mais.
+2. **Tensão** — a dor, o problema, o gap. Fazer o leitor se reconhecer.
+3-7. **Desenvolvimento** — método, exemplos, dados, provas. Cada slide avança um passo lógico. Variar a forma: um slide pode ser só um número grande, outro uma lista de 3 passos, outro uma citação.
+8-9. **Virada** — o insight, o resultado, a mudança de perspectiva.
+10. **CTA** — uma ação clara e única.
+
+**Princípio de composição**: Para cada slide, perguntar "qual é a informação central?" e escolher os elementos que melhor comunicam ESSA informação. Consultar `references/elements.md` para specs de cada tipo de elemento. Não existe combinação "correta" — existe a que serve o conteúdo.
 
 **REGRA**: Se o slide tem imagem, usar `freeform` + `backgroundImage`. Nunca `image-top`/`image-bottom` para visual editorial.
 
@@ -80,7 +86,6 @@ Planejar a sequência de slides seguindo uma progressão clara:
 - **Carrosséis com imagens**: mínimo ~80% de slides freeform (com backgroundImage + overlay + texto posicionado). Máximo ~20% texto puro (list, quote, highlight)
 - **Carrosséis 100% texto**: se o usuário optar por não usar imagens, todos os slides podem ser text-only (title-body, list, quote, highlight, etc.) com fundo sólido ou gradiente. A regra dos 80% freeform não se aplica nesse caso.
 - CTA final único (salvar **ou** comentar **ou** compartilhar — nunca 3 de uma vez)
-- Progressão lógica: dor → tensão → método → prova → CTA
 - Linguagem concreta, sem abstração vazia
 
 ### 1.3 Gerar o Prompt Pack (opcional)
@@ -163,6 +168,7 @@ Antes de apresentar a copy, reler `references/copy-direction.md` e revisar cada 
 - **Falso Hemingway**: Identificar sequências de frases curtas metralhadas. Inserir fluidez com frases longas.
 - **Adjetivos**: Máximo 1 por frase. Substituir adjetivos por dados concretos.
 - **Emojis no texto**: Zero. Nenhum emoji em heading, paragraph, subtitle, quote.
+- **Ponto final em títulos**: Elementos `heading` e `subtitle` NUNCA terminam com ponto final (`.`). Verificar todos e remover.
 
 **Esta validação não é opcional.** Se na segunda iteração (após ajustes do usuário) a copy ainda tiver violações, corrigir novamente antes de mostrar.
 
@@ -258,6 +264,26 @@ Descrever de forma concreta (não usar "bonito", "premium" sem detalhes):
 - **Lente**: 35mm wide, 50mm natural, 85mm portrait, macro...
 - **Atmosfera**: noturno, amanhecer, studio, urbano...
 
+### 3.4 Aprovação do Design
+
+**PARAR AQUI e apresentar o design ao usuário antes de gerar imagens.**
+
+Apresentar um resumo visual claro:
+
+```
+DESIGN DO CARROSSEL: "Título"
+
+Tema: Dark / Light / Custom
+Cores: background #0a0e1a, texto #f8fafc, acento #fbbf24
+Tipografia: Playfair Display 700 (headings) + Inter 400 (body)
+Direção visual: iluminação dourada lateral, textura grão de filme, lente 50mm, atmosfera studio
+Overlays: fade-to-top na capa/CTA, bidirecional nos slides de corpo
+```
+
+**NUNCA usar AskUserQuestion com opções pré-definidas.** Apresentar como texto e aguardar feedback aberto. Só avançar para geração de imagens após aprovação explícita.
+
+---
+
 ## Fase 4: Geração de Imagens
 
 Para detalhes completos de prompts e checklist, ler `references/image-generation-playbook.md`.
@@ -281,7 +307,13 @@ Para documentação da API de geração, ler `references/kie-api.md`.
 
 O script `generate_images.py` faz isso automaticamente no modo `--prompt-pack`. O hero é gerado primeiro, sua URL é capturada e passada como `input_urls` para todas as cenas seguintes via `gpt-image/1.5-image-to-image`.
 
-### 4.3 Padrões de Prompt
+### 4.3 Aprovação do Hero
+
+**PARAR após gerar o Hero editorial e mostrar ao usuário.** O hero é a âncora visual de todo o carrossel — todas as cenas narrativas serão geradas usando o hero como referência i2i. Se o hero não está bom (paleta errada, iluminação inadequada, composição ruim), regenerar até o usuário aprovar.
+
+Só gerar as cenas narrativas DEPOIS que o hero for aprovado. Gerar cenas com um hero ruim desperdiça créditos de API e produz um carrossel inconsistente.
+
+### 4.4 Padrões de Prompt
 
 **Título (tipografia isolada):**
 ```
@@ -299,14 +331,14 @@ Visual direction locked: [DIREÇÃO VISUAL COMPLETA].
 No text overlays, no logos, no watermark.
 ```
 
-### 4.4 Checklist por Imagem
+### 4.5 Checklist por Imagem
 
 - Mantém paleta e iluminação do conjunto?
 - Continua a narrativa do slide anterior?
 - Parece parte do mesmo ensaio fotográfico?
 - Está limpa para receber texto por cima?
 
-### 4.5 Gerar via Script
+### 4.6 Gerar via Script
 
 **Prompt pack com consistência automática (recomendado):**
 ```bash
@@ -355,7 +387,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --filename scene-04.jpg
 ```
 
-### 4.6 Estrutura de Assets
+### 4.7 Estrutura de Assets
 
 ```
 assets/
@@ -443,17 +475,28 @@ Cada slide:
 
 Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`** com overlay + elementos posicionados.
 
-**REGRA SOBRE ELEMENTOS**: O único elemento obrigatório em slides freeform é o `overlay`. Todos os outros (tag, heading, paragraph, subtitle, quote, emoji, image, etc.) são opcionais e devem ser escolhidos com base no conteúdo daquele slide específico. NÃO repetir a mesma combinação de elementos em todos os slides. Cada slide tem uma função narrativa diferente e os elementos devem refletir isso.
+**Única regra obrigatória**: overlay (zIndex 1) + pelo menos um elemento de texto (zIndex 2+). Tudo o mais é decisão de composição baseada no conteúdo.
 
-Exemplos de combinações válidas:
-- **Hook/Capa**: overlay + heading grande na base (sem tag, sem parágrafo)
-- **Problema com contexto**: overlay + tag no topo + heading + parágrafo na base
-- **Dado em destaque**: overlay + heading centralizado (só o número/dado)
-- **Citação visual**: overlay + quote centralizado
-- **Método**: overlay + heading + lista de passos (list-items)
-- **CTA**: overlay + heading + parágrafo curto na base
+**Princípios de composição para freeform:**
 
-Exemplo de slide freeform (uma das muitas combinações possíveis):
+1. **O conteúdo determina os elementos.** Se o slide é só um dado impactante, use apenas um heading grande. Se precisa de contexto, adicione um paragraph. Se tem uma lista, use list-items. Não adicionar elementos "porque o template pede" — adicionar porque o conteúdo precisa.
+
+2. **Variar entre slides.** Cada slide no arco tem função diferente. Alternar: slides densos (3-4 elementos) com slides minimalistas (1-2 elementos).
+
+3. **Overlay segue o texto, não o contrário.** Primeiro decidir ONDE o texto fica (topo, base, centro), depois escolher o overlay que protege essa região. Ver tabela de overlays abaixo.
+
+4. **Menos é mais.** Um slide com apenas um heading centralizado de 52px sobre uma foto forte tem mais impacto que um slide lotado de elementos.
+
+**Dimensões de composição** (usar como vocabulário, não como receita):
+- **Densidade**: minimalista (1-2 elementos) vs. denso (4-5 elementos). Alternar ao longo do carrossel.
+- **Posição do texto**: topo, centro, base, ou distribuído (topo + base). A posição determina o overlay.
+- **Escala tipográfica**: heading de 52px = autoridade. Heading de 36px + paragraph de 24px = nuance. Escolher conforme o peso da informação.
+- **Presença de tag**: tag categoriza. Usar quando o slide precisa de rótulo. A maioria dos slides NÃO precisa de tag.
+- **Tipo de conteúdo**: heading-only (dado, afirmação forte), heading+paragraph (contexto), heading+list-items (passos), quote (voz externa). Escolher com base no QUE o slide comunica.
+
+**Anti-padrão**: Copiar a mesma estrutura de elementos em todos os slides (ex: tag + heading + paragraph em 8 de 10 slides). Isso é o equivalente visual de uma apresentação genérica. Cada slide merece sua própria composição.
+
+Exemplo de sintaxe JSON para slide freeform:
 
 ```json
 {
@@ -591,7 +634,7 @@ Isso evita repetir as mesmas perguntas e calibrações em sessões futuras.
 2. **Consistência**: paleta, luz e textura iguais em todas as cenas
 3. **Título tipográfico separado** (fundo transparente, nunca dentro da cena)
 4. **Se tem imagens, mínimo ~80% slides freeform** (não se aplica a carrosséis 100% texto)
-5. **Progressão narrativa clara**: dor → tensão → método → prova → CTA
+5. **Progressão narrativa clara**: o arco deve avançar logicamente do hook ao CTA
 6. **CTA único** (uma ação, sem múltiplos pedidos)
 7. **Uma ideia por slide** — se precisou de "e também", dividir em 2 slides
 8. **Hook forte no slide 1** — se não para o scroll, o resto não importa

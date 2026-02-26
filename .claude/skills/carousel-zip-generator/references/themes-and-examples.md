@@ -1,5 +1,7 @@
 # Themes & Complete Examples
 
+> Estes exemplos servem como referência de **sintaxe JSON**, não como templates de conteúdo. A composição de elementos de cada slide deve ser determinada pelo conteúdo do carrossel, não copiada destes exemplos.
+
 ## Built-in Theme: Dark (Default)
 
 ```json
@@ -428,9 +430,11 @@ Topic: "Liderança" — motivational/educational
 
 ---
 
-## Example 4: Editorial Freeform Carousel (PADRÃO PREMIUM)
+## Example 4: Freeform Carousel with Background Images
 
-**Este é o padrão de maior qualidade.** Todos os slides usam `freeform` + `backgroundImage` + overlay + texto posicionado. Resultado: visual cinematográfico editorial.
+Todos os slides usam `freeform` + `backgroundImage` + overlay + texto posicionado.
+
+> **Nota**: Este exemplo mostra UMA forma válida de compor slides freeform. A composição de elementos de cada slide foi escolhida para servir o conteúdo específico daquele slide. Não tratar como template — cada carrossel deve ter sua própria composição baseada no conteúdo.
 
 Topic: "Produtividade para Desenvolvedores"
 
@@ -628,18 +632,11 @@ Topic: "Produtividade para Desenvolvedores"
 }
 ```
 
-**Padrão deste exemplo:**
-- **TODOS** os slides usam `layout: "freeform"` + `backgroundImage`
-- **Overlay** em todos os slides: `x:0, y:0, w:1080, h:1440, zIndex:1`
-- **Textos** sempre `zIndex: 2`, padding `x:80, w:920`
-- **Capa** (slide 1): heading+paragraph na base, overlay fade-to-top
-- **Corpo com variedade de elementos:**
-  - Slide 2 (problema): tag + heading + paragraph
-  - Slide 3 (dado): heading centralizado grande (SEM tag, SEM paragraph)
-  - Slide 4 (método): heading + list-items (SEM tag)
-  - Slide 5 (resultado): heading + paragraph (SEM tag)
-- **CTA** (slide 6): texto na base, overlay fade-to-top, handle centralizado
-- **Nota:** Cada slide usa os elementos que sua função narrativa pede — NÃO repetir tag+heading+paragraph em todos
+**Notas técnicas deste exemplo:**
+- Todos os slides freeform: overlay `x:0, y:0, w:1080, h:1440, zIndex:1`
+- Textos sempre `zIndex: 2`, padding lateral `x:80, w:920`
+- Overlays variam conforme posição do texto (fade-to-top, bidirecional, etc.)
+- Consultar `references/elements.md` para specs completas de cada tipo de elemento
 
 **ZIP structure:**
 ```

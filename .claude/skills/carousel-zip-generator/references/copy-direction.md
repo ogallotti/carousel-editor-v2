@@ -109,6 +109,14 @@ Não usar em-dash para inserir reflexões no meio de frases. Usar pontuação no
 - Proibido: "No mundo acelerado de hoje", "Na era digital", "Descubra como X pode...", "Você sabia que...", "Cansado de Y?"
 - Permitido: Começar com dado concreto, cenário específico ou afirmação direta.
 
+### 7. Títulos Nunca Terminam com Ponto Final
+
+Elementos `heading` e `subtitle` NUNCA terminam com ponto final (`.`). Ponto final em título é erro de formatação editorial.
+
+- Proibido: `"O método que funciona."`, `"3 passos para começar."`
+- Permitido: `"O método que funciona"`, `"3 passos para começar"`
+- **Exceção**: Reticências (`...`) e ponto de interrogação (`?`) ou exclamação (`!`) são permitidos quando fazem parte da intenção retórica.
+
 ---
 
 ## Direção Positiva (O Que Fazer)

@@ -295,7 +295,7 @@ Single item in a list. Use multiple list-items in one slide for a bulleted list.
 }
 ```
 
-**Tip**: For a list slide, create a heading + multiple list-items:
+**Tip**: For a list slide, create a heading + multiple list-items (syntax example — number and content of items depends on your slide's content):
 ```json
 "elements": [
   { "id": "lh1", "type": "heading", "level": 2, "content": "3 Passos Essenciais" },

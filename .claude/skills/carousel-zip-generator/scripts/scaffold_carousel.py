@@ -54,65 +54,8 @@ def el(el_type, **kwargs):
     return base
 
 
-# Each freeform template defines: (function, elements_builder)
-# Elements vary per slide function — NOT every slide needs tag+heading+paragraph
-def _elements_problema():
-    """Tag + heading + paragraph na base"""
-    return [
-        el("tag", content="PROBLEMA", x=80, y=100, w=300, zIndex=2),
-        el("heading", level=2, content="A dor que o publico sente", x=80, y=170, w=920, fontSize=44, zIndex=2),
-        el("paragraph", content="Texto detalhado sobre o problema que o publico enfrenta.", x=80, y=1100, w=920, fontSize=24, zIndex=2),
-    ]
-
-def _elements_insight():
-    """Heading centralizado grande (dado em destaque, sem tag)"""
-    return [
-        el("heading", level=1, content="73% dos profissionais ignoram esse dado.", x=80, y=580, w=920, fontSize=56, textAlign="center", zIndex=2),
-    ]
-
-def _elements_metodo():
-    """Heading + lista de passos (sem tag)"""
-    return [
-        el("heading", level=2, content="Como aplicar na pratica", x=80, y=100, w=920, fontSize=44, zIndex=2),
-        el("list-item", icon="01", content="Primeiro passo concreto com contexto", x=80, y=1000, w=920, fontSize=24, zIndex=2),
-        el("list-item", icon="02", content="Segundo passo concreto com contexto", x=80, y=1100, w=920, fontSize=24, zIndex=2),
-        el("list-item", icon="03", content="Terceiro passo concreto com contexto", x=80, y=1200, w=920, fontSize=24, zIndex=2),
-    ]
-
-def _elements_exemplo():
-    """Tag + heading + paragraph (caso com numeros)"""
-    return [
-        el("tag", content="CASO REAL", x=80, y=100, w=300, zIndex=2),
-        el("heading", level=2, content="Caso real com numeros", x=80, y=170, w=920, fontSize=44, zIndex=2),
-        el("paragraph", content="Antes e depois mensuravel que sustenta a tese.", x=80, y=1100, w=920, fontSize=24, zIndex=2),
-    ]
-
-def _elements_prova():
-    """Quote centralizado (sem tag, sem heading)"""
-    return [
-        el("quote", content="Resultado concreto e mensuravel em contexto real.", attribution="Fonte verificavel", x=80, y=520, w=920, fontSize=40, textAlign="center", zIndex=2),
-    ]
-
-def _elements_virada():
-    """Heading na base (frase curta de impacto, sem nada mais)"""
-    return [
-        el("heading", level=1, content="O que ninguem percebeu ainda.", x=80, y=1040, w=920, fontSize=52, zIndex=2),
-    ]
-
-FREEFORM_TEMPLATES = [
-    _elements_problema,
-    _elements_insight,
-    _elements_metodo,
-    _elements_exemplo,
-    _elements_prova,
-    _elements_virada,
-]
-
-TEXT_TEMPLATES = [
-    ("list", "SINAIS", "Como identificar em 30 segundos"),
-    ("quote", "VIRADA", "Frase que muda a perspectiva"),
-    ("highlight", "DADO CHAVE", "Insight em destaque"),
-]
+# Content-neutral placeholders — the LLM fills in real elements based on copy
+TEXT_LAYOUTS = ["list", "quote", "highlight", "title-body"]
 
 OVERLAY_FADE_TOP_BOTTOM = (
     "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, "
@@ -132,63 +75,53 @@ def build_slides(title, slides_total):
         "elements": [
             el("overlay", fill=OVERLAY_FADE_TO_TOP, x=0, y=0, w=1080, h=1440, zIndex=1),
             el("heading", level=1, content=title, x=80, y=1040, w=920, fontSize=52, zIndex=2),
-            el("subtitle", content="Subtitulo com promessa concreta", x=80, y=1240, w=920, fontSize=28, zIndex=2),
         ],
     })
 
-    # Body slides: ~80% freeform, ~20% text-only
+    # Body slides: ~80% freeform, ~20% text-only (content-neutral placeholders)
     body_count = slides_total - 2  # minus cover and CTA
     text_only_interval = 5  # every 5th body slide is text-only
     scene_idx = 2
-    freeform_cursor = 0
-    text_cursor = 0
 
     for i in range(body_count):
+        slide_num = i + 2
         is_text_only = ((i + 1) % text_only_interval == 0)
 
         if is_text_only:
-            layout, tag, heading = TEXT_TEMPLATES[text_cursor % len(TEXT_TEMPLATES)]
+            layout = random.choice(TEXT_LAYOUTS)
             elements = [
-                el("tag", content=tag, textAlign="center"),
-                el("heading", level=2, content=heading, textAlign="center"),
+                el("heading", level=2,
+                   content="[Slide %d: conteudo]" % slide_num,
+                   textAlign="center"),
             ]
-
             if layout == "list":
-                elements.extend([
-                    el("list-item", icon="01", content="Primeiro item da lista com contexto narrativo", textAlign="left"),
-                    el("list-item", icon="02", content="Segundo item da lista com contexto narrativo", textAlign="left"),
-                    el("list-item", icon="03", content="Terceiro item da lista com contexto narrativo", textAlign="left"),
-                ])
+                elements.append(el("list-item", icon="01",
+                                   content="[Item da lista]",
+                                   textAlign="left"))
             elif layout == "quote":
-                elements.append(el(
-                    "quote",
-                    content="Frase memoravel que pode virar print.",
-                    attribution="Fonte ou contexto da citacao",
-                    textAlign="center",
-                ))
+                elements.append(el("quote",
+                                   content="[Citacao]",
+                                   attribution="[Fonte]",
+                                   textAlign="center"))
             elif layout == "highlight":
-                elements.append(el(
-                    "highlight",
-                    content="Dado ou insight em destaque que sustenta a tese central.",
-                    textAlign="center",
-                ))
+                elements.append(el("highlight",
+                                   content="[Destaque]",
+                                   textAlign="center"))
 
             slides.append({"id": uid(), "layout": layout, "elements": elements})
-            text_cursor += 1
         else:
-            elements_fn = FREEFORM_TEMPLATES[freeform_cursor % len(FREEFORM_TEMPLATES)]
-            body_elements = elements_fn()
             slides.append({
                 "id": uid(),
                 "layout": "freeform",
                 "backgroundImage": "assets/scene-%02d.jpg" % scene_idx,
                 "elements": [
                     el("overlay", fill=OVERLAY_FADE_TOP_BOTTOM, x=0, y=0, w=1080, h=1440, zIndex=1),
-                    *body_elements,
+                    el("heading", level=2,
+                       content="[Slide %d: conteudo]" % slide_num,
+                       x=80, y=600, w=920, fontSize=44, textAlign="center", zIndex=2),
                 ],
             })
             scene_idx += 1
-            freeform_cursor += 1
 
     # Last slide: CTA (freeform + backgroundImage)
     slides.append({
@@ -197,8 +130,9 @@ def build_slides(title, slides_total):
         "backgroundImage": "assets/bg-cta.jpg",
         "elements": [
             el("overlay", fill=OVERLAY_FADE_TO_TOP, x=0, y=0, w=1080, h=1440, zIndex=1),
-            el("heading", level=1, content="Salva este post.", x=80, y=1100, w=920, fontSize=48, zIndex=2),
-            el("paragraph", content="CTA unico, claro e direto.", x=80, y=1260, w=920, fontSize=26, zIndex=2),
+            el("heading", level=1,
+               content="[CTA: acao unica e clara]",
+               x=80, y=1100, w=920, fontSize=48, zIndex=2),
         ],
     })
 

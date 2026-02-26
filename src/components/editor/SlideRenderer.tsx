@@ -1,0 +1,1045 @@
+'use client';
+
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
+import { ArrowUp, ArrowDown, Copy, Trash2, Image } from 'lucide-react';
+import type { Slide, SlideElement, Theme, ElementType, OverlayElement } from '@/types/schema';
+import type { GuideLine } from '@/hooks/useSmartGuides';
+import { themeToCSVars } from '@/lib/theme-utils';
+import { useAssetContext } from '@/lib/asset-urls';
+import { ImageDialog } from './ImageDialog';
+import { EmojiPicker } from './EmojiPicker';
+import { IconPicker } from './IconPicker';
+import { FormattingToolbar } from './FormattingToolbar';
+import { SelectionToolbar } from './SelectionToolbar';
+import { FreeformElement } from './FreeformElement';
+import { SmartGuideOverlay } from './SmartGuideOverlay';
+import { cn } from '@/lib/utils';
+
+function parseObjectPosition(pos?: string): { x: number; y: number } {
+  if (!pos) return { x: 50, y: 50 };
+  const parts = pos.trim().split(/\s+/);
+  const parseVal = (s: string): number => {
+    if (s === 'center') return 50;
+    if (s === 'left' || s === 'top') return 0;
+    if (s === 'right' || s === 'bottom') return 100;
+    return parseFloat(s) || 50;
+  };
+  return { x: parseVal(parts[0]), y: parts.length > 1 ? parseVal(parts[1]) : 50 };
+}
+
+interface SlideRendererProps {
+  slide: Slide;
+  theme: Theme;
+  footer: string;
+  handle: string;
+  slideNumber: number;
+  totalSlides: number;
+  isEditing: boolean;
+  selectedElementId: string | null;
+  onSelectElement: (id: string | null) => void;
+  onUpdateElement: (elementId: string, element: SlideElement) => void;
+  onChangeElementType?: (elementId: string, newType: ElementType, newLevel?: number) => void;
+  onDeleteElement?: (elementId: string) => void;
+  onDuplicateElement?: (elementId: string) => void;
+  onMoveElement?: (elementId: string, direction: 'up' | 'down') => void;
+  onUpdateSlideBgPosition?: (pos: string) => void;
+  scale?: number;
+  projectId?: string;
+}
+
+function themeToStyle(vars: Record<string, string>): React.CSSProperties {
+  const style: Record<string, string> = {};
+  for (const [key, value] of Object.entries(vars)) {
+    style[key] = value;
+  }
+  return style as React.CSSProperties;
+}
+
+function ElementControls({
+  element,
+  onUpdate,
+  onMove,
+  onDuplicate,
+  onDelete,
+}: {
+  element: SlideElement;
+  onUpdate: (el: SlideElement) => void;
+  onMove?: (direction: 'up' | 'down') => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
+}) {
+  const btnClass = 'flex size-[40px] items-center justify-center rounded-lg backdrop-blur-sm bg-popover/85 text-muted-foreground border border-border/30 cursor-pointer transition-all duration-150 hover:text-popover-foreground';
+
+  return (
+    <div className="absolute opacity-0 transition-opacity group-hover/el:opacity-100 z-[99998] left-full top-0 ml-2 flex flex-col gap-1"
+      data-editor-control
+      onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+      {/* Move up */}
+      {onMove && (
+        <button type="button" className={btnClass} title="Mover pra cima" data-editor-control
+          onClick={(e) => { e.stopPropagation(); onMove('up'); }}>
+          <ArrowUp className="size-5" />
+        </button>
+      )}
+      {/* Move down */}
+      {onMove && (
+        <button type="button" className={btnClass} title="Mover pra baixo" data-editor-control
+          onClick={(e) => { e.stopPropagation(); onMove('down'); }}>
+          <ArrowDown className="size-5" />
+        </button>
+      )}
+      {/* Duplicate */}
+      {onDuplicate && (
+        <button type="button" className={btnClass} title="Duplicar elemento" data-editor-control
+          onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+          <Copy className="size-5" />
+        </button>
+      )}
+      {/* Delete */}
+      {onDelete && (
+        <button type="button" className={cn(btnClass, 'hover:text-destructive hover:bg-destructive/15')} title="Excluir elemento" data-editor-control
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+          <Trash2 className="size-5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ElementWrapper({
+  element,
+  isEditing,
+  isSelected,
+  onSelect,
+  onUpdate,
+  onMove,
+  onDuplicate,
+  onDelete,
+  children,
+}: {
+  element: SlideElement;
+  isEditing: boolean;
+  isSelected: boolean;
+  onSelect: () => void;
+  onUpdate: (el: SlideElement) => void;
+  onMove?: (direction: 'up' | 'down') => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
+  children: React.ReactNode;
+}) {
+  const style: React.CSSProperties = {};
+  if (element.marginTop !== undefined) style.marginTop = `${element.marginTop}px`;
+  if (element.marginBottom !== undefined) style.marginBottom = `${element.marginBottom}px`;
+  if (element.fontSize !== undefined) style.fontSize = `${element.fontSize}px`;
+  if (element.textAlign) style.textAlign = element.textAlign;
+
+  return (
+    <div
+      className={cn(
+        'group/el relative',
+        isEditing && !isSelected && 'cursor-pointer',
+        isSelected && 'outline outline-2 outline-offset-2 rounded outline-[var(--editor-accent)]',
+        isEditing && !isSelected && 'hover:outline hover:outline-1 hover:outline-offset-1 hover:rounded hover:outline-[var(--editor-accent-border)]'
+      )}
+      style={style}
+      data-element-id={element.id}
+      onClick={(e) => {
+        if (isEditing) {
+          e.stopPropagation();
+          if (!isSelected) {
+            onSelect();
+          }
+        }
+      }}
+    >
+      {children}
+      {isEditing && (
+        <ElementControls
+          element={element}
+          onUpdate={onUpdate}
+          onMove={onMove}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+function SlideRendererComponent({
+  slide,
+  theme,
+  footer,
+  handle,
+  slideNumber,
+  totalSlides,
+  isEditing,
+  selectedElementId,
+  onSelectElement,
+  onUpdateElement,
+  onChangeElementType,
+  onDeleteElement,
+  onDuplicateElement,
+  onMoveElement,
+  onUpdateSlideBgPosition,
+  scale,
+  projectId,
+}: SlideRendererProps) {
+  const { resolveUrl, registerAssetUrl } = useAssetContext();
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageDialogTarget, setImageDialogTarget] = useState<string | null>(null);
+  const [guides, setGuides] = useState<GuideLine[]>([]);
+  const imageDragRef = useRef<{
+    elementId: string;
+    startX: number;
+    startY: number;
+    startObjX: number;
+    startObjY: number;
+  } | null>(null);
+  const [draggingImageId, setDraggingImageId] = useState<string | null>(null);
+  // "Crop mode" — double-click an image to enter, drag to reposition within the box
+  const [cropModeId, setCropModeId] = useState<string | null>(null);
+  const counter = `${String(slideNumber).padStart(2, '0')}/${String(totalSlides).padStart(2, '0')}`;
+
+  const displayScale = scale ?? 0.375;
+
+  const themeVars = themeToCSVars(theme);
+
+  const handleImageClick = useCallback(
+    (elementId: string) => {
+      if (!isEditing) return;
+      setImageDialogTarget(elementId);
+      setImageDialogOpen(true);
+    },
+    [isEditing]
+  );
+
+  // Enter crop mode on double-click (Figma-like: drag to reposition image within box)
+  const handleImageDoubleClick = useCallback(
+    (elementId: string) => {
+      const element = slide.elements.find((el) => el.id === elementId);
+      if (!element || element.type !== 'image' || !element.src) return;
+      if (!isEditing) return;
+      setCropModeId(elementId);
+    },
+    [slide.elements, isEditing]
+  );
+
+  // Exit crop mode when clicking outside or selecting another element
+  const prevSelectedRef = useRef(selectedElementId);
+  if (prevSelectedRef.current !== selectedElementId) {
+    prevSelectedRef.current = selectedElementId;
+    if (cropModeId && selectedElementId !== cropModeId) {
+      setCropModeId(null);
+    }
+  }
+
+  // Exit crop mode on Escape key
+  useEffect(() => {
+    if (!cropModeId) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setCropModeId(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [cropModeId]);
+
+  const handleImageSelected = useCallback(
+    (src: string) => {
+      if (!imageDialogTarget) return;
+      const element = slide.elements.find((el) => el.id === imageDialogTarget);
+      if (element && element.type === 'image') {
+        onUpdateElement(imageDialogTarget, { ...element, src });
+      }
+    },
+    [imageDialogTarget, slide.elements, onUpdateElement]
+  );
+
+  const selectedElement = slide.elements.find((el) => el.id === selectedElementId);
+  const selectedElementType = selectedElement?.type;
+  const selectedElementLevel = selectedElement?.type === 'heading' ? selectedElement.level : undefined;
+
+  const handleContentBlur = useCallback(
+    (elementId: string, e: React.FocusEvent<HTMLElement>) => {
+      const element = slide.elements.find((el) => el.id === elementId);
+      if (element && 'content' in element) {
+        onUpdateElement(elementId, { ...element, content: e.currentTarget.innerHTML } as SlideElement);
+      }
+    },
+    [slide.elements, onUpdateElement]
+  );
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      document.execCommand('insertLineBreak');
+    }
+  }, []);
+
+  const handleImageDragStart = useCallback(
+    (elementId: string, e: React.MouseEvent) => {
+      const element = slide.elements.find((el) => el.id === elementId);
+      if (!element || element.type !== 'image' || !element.src) return;
+      // Only start drag when in crop mode for this image
+      if (!isEditing || cropModeId !== elementId) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const { x, y } = parseObjectPosition(element.objectPosition);
+      imageDragRef.current = {
+        elementId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startObjX: x,
+        startObjY: y,
+      };
+      setDraggingImageId(elementId);
+
+      const sensitivity = 0.15 / displayScale;
+
+      const handleMouseMove = (ev: MouseEvent) => {
+        const drag = imageDragRef.current;
+        if (!drag) return;
+        const dx = ev.clientX - drag.startX;
+        const dy = ev.clientY - drag.startY;
+        const newX = Math.min(100, Math.max(0, drag.startObjX - dx * sensitivity));
+        const newY = Math.min(100, Math.max(0, drag.startObjY - dy * sensitivity));
+        const pos = `${newX.toFixed(1)}% ${newY.toFixed(1)}%`;
+        const el = slide.elements.find((e) => e.id === drag.elementId);
+        if (el && el.type === 'image') {
+          onUpdateElement(drag.elementId, { ...el, objectPosition: pos });
+        }
+      };
+
+      const handleMouseUp = () => {
+        imageDragRef.current = null;
+        setDraggingImageId(null);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [slide.elements, isEditing, cropModeId, displayScale, onUpdateElement]
+  );
+
+  // ── Background image crop mode ──
+  const BG_CROP_ID = '__bg_crop__';
+
+  const handleSlideBgDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isEditing || !slide.backgroundImage || !onUpdateSlideBgPosition) return;
+      // Only trigger if click was NOT inside an element
+      let target = e.target as HTMLElement;
+      while (target && target !== e.currentTarget) {
+        if (target.hasAttribute('data-element-id')) return;
+        target = target.parentElement!;
+      }
+      setCropModeId(BG_CROP_ID);
+    },
+    [isEditing, slide.backgroundImage, onUpdateSlideBgPosition]
+  );
+
+  const handleBgCropDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      if (cropModeId !== BG_CROP_ID || !slide.backgroundImage || !onUpdateSlideBgPosition) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const { x, y } = parseObjectPosition(slide.backgroundPosition);
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const sensitivity = 0.15 / displayScale;
+
+      setDraggingImageId(BG_CROP_ID);
+
+      const handleMouseMove = (ev: MouseEvent) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        const newX = Math.min(100, Math.max(0, x - dx * sensitivity));
+        const newY = Math.min(100, Math.max(0, y - dy * sensitivity));
+        onUpdateSlideBgPosition(`${newX.toFixed(1)}% ${newY.toFixed(1)}%`);
+      };
+
+      const handleMouseUp = () => {
+        setDraggingImageId(null);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [cropModeId, slide.backgroundImage, slide.backgroundPosition, displayScale, onUpdateSlideBgPosition]
+  );
+
+  const isBgCropping = cropModeId === BG_CROP_ID;
+
+  const handleFileDrop = useCallback(
+    async (elementId: string, e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const file = e.dataTransfer.files?.[0];
+      if (file && file.type.startsWith('image/')) {
+        const { saveAsset } = await import('@/lib/projects');
+        const filename = `assets/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        await saveAsset(projectId ?? '', filename, file);
+        registerAssetUrl(filename, file);
+        const element = slide.elements.find((el) => el.id === elementId);
+        if (element && element.type === 'image') {
+          onUpdateElement(elementId, { ...element, src: filename });
+        }
+      }
+    },
+    [projectId, registerAssetUrl, slide.elements, onUpdateElement]
+  );
+
+  const editableProps = (elementId: string) =>
+    isEditing
+      ? {
+          contentEditable: true as const,
+          suppressContentEditableWarning: true as const,
+          onBlur: (e: React.FocusEvent<HTMLElement>) => handleContentBlur(elementId, e),
+          onKeyDown: handleKeyDown,
+        }
+      : {};
+
+  // Group consecutive list-items into a .list-items container
+  const renderElementsGrouped = (elements: SlideElement[]) => {
+    const groups: React.ReactNode[] = [];
+    let listBatch: SlideElement[] = [];
+
+    const flushList = () => {
+      if (listBatch.length > 0) {
+        groups.push(
+          <div className="list-items" key={`list-group-${listBatch[0].id}`}>
+            {listBatch.map(renderElement)}
+          </div>
+        );
+        listBatch = [];
+      }
+    };
+
+    for (const el of elements) {
+      if (el.type === 'list-item') {
+        listBatch.push(el);
+      } else {
+        flushList();
+        groups.push(renderElement(el));
+      }
+    }
+    flushList();
+    return groups;
+  };
+
+  const renderElement = (element: SlideElement) => {
+    const isSelected = selectedElementId === element.id;
+
+    switch (element.type) {
+      case 'tag':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="tag" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          </ElementWrapper>
+        );
+
+      case 'heading': {
+        const Tag = `h${element.level}` as 'h1' | 'h2' | 'h3';
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <Tag {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          </ElementWrapper>
+        );
+      }
+
+      case 'paragraph':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          </ElementWrapper>
+        );
+
+      case 'subtitle':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <p className="sub" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          </ElementWrapper>
+        );
+
+      case 'emoji':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            {isEditing ? (
+              <EmojiPicker
+                trigger={
+                  <div className="cover-emoji cursor-pointer" style={{ fontSize: element.size ?? 96 }}>
+                    {element.content}
+                  </div>
+                }
+                onEmojiSelected={(emoji) => onUpdateElement(element.id, { ...element, content: emoji })}
+              />
+            ) : (
+              <div className="cover-emoji" style={{ fontSize: element.size ?? 96 }}>
+                {element.content}
+              </div>
+            )}
+          </ElementWrapper>
+        );
+
+      case 'image': {
+        const isCropping = cropModeId === element.id;
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div
+              className={element.variant === 'background' ? 'img-bg' : 'img-area'}
+              style={{
+                ...(element.borderRadius !== undefined ? { borderRadius: `${element.borderRadius}px` } : {}),
+                ...(isCropping ? { outline: '2px dashed var(--editor-accent)', outlineOffset: -2 } : {}),
+              }}
+            >
+              {element.src ? (
+                <img
+                  src={resolveUrl(element.src)}
+                  alt={element.alt ?? ''}
+                  style={{
+                    objectPosition: element.objectPosition,
+                    cursor: isCropping ? (draggingImageId === element.id ? 'grabbing' : 'grab') : undefined,
+                  }}
+                  draggable={false}
+                  onMouseDown={(e) => {
+                    if (isCropping) {
+                      handleImageDragStart(element.id, e);
+                    }
+                  }}
+                  onDoubleClick={() => handleImageDoubleClick(element.id)}
+                />
+              ) : (
+                <div
+                  className="flex flex-col items-center justify-center gap-3 text-muted-foreground cursor-pointer"
+                  style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.05)', border: '2px dashed rgba(255,255,255,0.15)' }}
+                  onClick={() => handleImageClick(element.id)}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => handleFileDrop(element.id, e)}
+                >
+                  {isEditing && (
+                    <>
+                      <Image className="size-8 opacity-40" />
+                      <span style={{ fontSize: 24 }}>Clique ou arraste uma imagem</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {isEditing && element.src && (
+                <button
+                  type="button"
+                  className="absolute bottom-2 right-2 rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground opacity-0 shadow backdrop-blur transition-opacity group-hover/el:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleImageClick(element.id);
+                  }}
+                  data-editor-control
+                >
+                  Trocar
+                </button>
+              )}
+            </div>
+          </ElementWrapper>
+        );
+      }
+
+      case 'quote':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="quote-mark">&ldquo;</div>
+            <div className="quote-text" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            {element.attribution && (
+              <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+                &mdash; {element.attribution}
+              </p>
+            )}
+          </ElementWrapper>
+        );
+
+      case 'stat':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="stats-grid">
+              {element.items.map((item, i) => (
+                <div key={i} className="stat-item">
+                  <div className="stat-value">{item.value}</div>
+                  <div className="stat-label">{item.label}</div>
+                </div>
+              ))}
+            </div>
+          </ElementWrapper>
+        );
+
+      case 'list-item':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="list-item">
+              {isEditing ? (
+                <IconPicker
+                  trigger={
+                    element.icon?.startsWith('http') ? (
+                      <img className="icon cursor-pointer" src={element.icon} alt="Icone" title="Trocar icone" draggable={false} style={{ width: 48, height: 48 }} />
+                    ) : (
+                      <span className="list-icon cursor-pointer" title="Trocar icone">
+                        {element.icon || '\u25CF'}
+                      </span>
+                    )
+                  }
+                  onIconSelected={(icon) => onUpdateElement(element.id, { ...element, icon })}
+                />
+              ) : (
+                element.icon?.startsWith('http') ? (
+                  <img className="icon" src={element.icon} alt="Icone" draggable={false} style={{ width: 48, height: 48 }} />
+                ) : (
+                  <span className="list-icon">{element.icon || '\u25CF'}</span>
+                )
+              )}
+              <span {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            </div>
+          </ElementWrapper>
+        );
+
+      case 'highlight':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="highlight-block">
+              <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            </div>
+          </ElementWrapper>
+        );
+
+      case 'divider':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="divider-line" />
+          </ElementWrapper>
+        );
+
+      case 'spacer':
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div style={{ height: element.height }} />
+          </ElementWrapper>
+        );
+
+      case 'overlay':
+        // Fallback for freeform layout; flow overlays are rendered separately as full-slide covers
+        return (
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div
+              className="overlay-element"
+              style={{
+                background: element.fill,
+                width: '100%',
+                height: element.h ?? 200,
+                borderRadius: 4,
+                position: 'relative',
+              }}
+            />
+          </ElementWrapper>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const currentImageElement = imageDialogTarget
+    ? slide.elements.find((el) => el.id === imageDialogTarget)
+    : null;
+
+  // Render freeform elements
+  const renderFreeformElement = (element: SlideElement) => {
+    const isSelected = selectedElementId === element.id;
+
+    const baseElement = (() => {
+      switch (element.type) {
+        case 'tag':
+          return (
+            <div className="tag" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          );
+
+        case 'heading': {
+          const Tag = `h${element.level}` as 'h1' | 'h2' | 'h3';
+          return (
+            <Tag {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          );
+        }
+
+        case 'paragraph':
+          return (
+            <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          );
+
+        case 'subtitle':
+          return (
+            <p className="sub" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          );
+
+        case 'emoji':
+          return isEditing ? (
+            <EmojiPicker
+              trigger={
+                <div className="cover-emoji cursor-pointer" style={{ fontSize: element.size ?? 96 }}>
+                  {element.content}
+                </div>
+              }
+              onEmojiSelected={(emoji) => onUpdateElement(element.id, { ...element, content: emoji })}
+            />
+          ) : (
+            <div className="cover-emoji" style={{ fontSize: element.size ?? 96 }}>
+              {element.content}
+            </div>
+          );
+
+        case 'image': {
+          const isCroppingFreeform = cropModeId === element.id;
+          return (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              position: 'relative',
+              borderRadius: element.borderRadius !== undefined ? `${element.borderRadius}px` : '16px',
+              overflow: 'hidden',
+              ...(isCroppingFreeform ? { outline: '2px dashed var(--editor-accent)', outlineOffset: -2 } : {}),
+            }}>
+              {element.src ? (
+                <img
+                  src={resolveUrl(element.src)}
+                  alt={element.alt ?? ''}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: element.objectPosition ?? 'center',
+                    cursor: isCroppingFreeform ? (draggingImageId === element.id ? 'grabbing' : 'grab') : undefined,
+                  }}
+                  draggable={false}
+                  onMouseDown={(e) => {
+                    if (isCroppingFreeform) {
+                      handleImageDragStart(element.id, e);
+                    }
+                  }}
+                  onDoubleClick={() => handleImageDoubleClick(element.id)}
+                />
+              ) : (
+                <div
+                  className="flex flex-col items-center justify-center gap-3 text-muted-foreground cursor-pointer"
+                  style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.05)', border: '2px dashed rgba(255,255,255,0.15)' }}
+                  onClick={() => handleImageClick(element.id)}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => handleFileDrop(element.id, e)}
+                >
+                  {isEditing && (
+                    <>
+                      <Image className="size-8 opacity-40" />
+                      <span style={{ fontSize: 24 }}>Clique ou arraste uma imagem</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {isEditing && element.src && (
+                <button
+                  type="button"
+                  className="absolute bottom-2 right-2 rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground opacity-0 shadow backdrop-blur transition-opacity group-hover/el:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleImageClick(element.id);
+                  }}
+                  data-editor-control
+                >
+                  Trocar
+                </button>
+              )}
+            </div>
+          );
+        }
+
+        case 'quote':
+          return (
+            <div>
+              <div className="quote-mark">&ldquo;</div>
+              <div className="quote-text" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              {element.attribution && (
+                <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+                  &mdash; {element.attribution}
+                </p>
+              )}
+            </div>
+          );
+
+        case 'stat':
+          return (
+            <div className="stats-grid">
+              {element.items.map((item, i) => (
+                <div key={i} className="stat-item">
+                  <div className="stat-value">{item.value}</div>
+                  <div className="stat-label">{item.label}</div>
+                </div>
+              ))}
+            </div>
+          );
+
+        case 'list-item':
+          return (
+            <div className="list-item">
+              {isEditing ? (
+                <IconPicker
+                  trigger={
+                    element.icon?.startsWith('http') ? (
+                      <img className="icon cursor-pointer" src={element.icon} alt="Icone" title="Trocar icone" draggable={false} style={{ width: 48, height: 48 }} />
+                    ) : (
+                      <span className="list-icon cursor-pointer" title="Trocar icone">
+                        {element.icon || '\u25CF'}
+                      </span>
+                    )
+                  }
+                  onIconSelected={(icon) => onUpdateElement(element.id, { ...element, icon })}
+                />
+              ) : (
+                element.icon?.startsWith('http') ? (
+                  <img className="icon" src={element.icon} alt="Icone" draggable={false} style={{ width: 48, height: 48 }} />
+                ) : (
+                  <span className="list-icon">{element.icon || '\u25CF'}</span>
+                )
+              )}
+              <span {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            </div>
+          );
+
+        case 'highlight':
+          return (
+            <div className="highlight-block">
+              <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            </div>
+          );
+
+        case 'divider':
+          return <div className="divider-line" />;
+
+        case 'spacer':
+          return <div style={{ height: element.height }} />;
+
+        case 'overlay':
+          return (
+            <div
+              className="overlay-element"
+              style={{
+                background: element.fill,
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+              }}
+            />
+          );
+
+        default:
+          return null;
+      }
+    })();
+
+    if (!baseElement) return null;
+
+    return (
+      <FreeformElement
+        key={element.id}
+        element={element}
+        scale={displayScale}
+        isEditing={isEditing}
+        isSelected={isSelected}
+        onSelect={() => onSelectElement(element.id)}
+        onUpdate={(updatedElement) => onUpdateElement(element.id, updatedElement)}
+        otherElements={slide.elements}
+        onGuidesChange={setGuides}
+      >
+        {baseElement}
+      </FreeformElement>
+    );
+  };
+
+  return (
+    <>
+      <div
+        className="slide-wrapper"
+        style={{
+          position: 'relative',
+          flexShrink: 0,
+        }}
+      >
+        <div
+          className={cn(
+            "slide-renderer slide",
+            slide.layout === 'freeform' && "slide-freeform"
+          )}
+          style={{
+            ...themeToStyle(themeVars),
+            ...(slide.background ? { background: slide.background } : {}),
+            ...(slide.backgroundImage ? { backgroundImage: `url(${resolveUrl(slide.backgroundImage)})`, backgroundSize: 'cover', backgroundPosition: slide.backgroundPosition ?? 'center' } : {}),
+            ...(isBgCropping ? { outline: '2px dashed var(--editor-accent)', outlineOffset: -2 } : {}),
+            width: 1080,
+            height: 1440,
+            zoom: displayScale,
+          }}
+          onClick={() => { if (!isBgCropping) onSelectElement(null); }}
+          onDoubleClick={handleSlideBgDoubleClick}
+        >
+          {/* Background crop overlay — captures all mouse events when in bg crop mode */}
+          {isBgCropping && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 99999,
+                cursor: draggingImageId === BG_CROP_ID ? 'grabbing' : 'grab',
+              }}
+              onMouseDown={handleBgCropDragStart}
+              data-editor-control
+            />
+          )}
+
+          {/* Header */}
+          <div className="hd" style={slide.layout === 'freeform' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } : undefined}>
+            <span>{handle}</span>
+            <span className="slide-counter">{counter}</span>
+          </div>
+
+          {/* Content */}
+          {slide.layout === 'freeform' ? (
+            <>
+              {/* Freeform layout: absolute positioning, covers entire slide */}
+              <div style={{ position: 'absolute', inset: 0 }}>
+                {slide.elements.map(renderFreeformElement)}
+              </div>
+              {/* Smart guides overlay */}
+              {isEditing && <SmartGuideOverlay guides={guides} />}
+              {/* Footer on top of freeform content */}
+              <div className="ft" style={{ justifyContent: 'center', position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100 }}>
+                <span className="ft-theme">{footer}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Regular flow layout */}
+              {/* Overlays rendered as absolute full-slide covers behind content */}
+              {slide.elements.filter(el => el.type === 'overlay').map(element => {
+                const isSelected = selectedElementId === element.id;
+                const overlayEl = element as OverlayElement;
+                return (
+                  <div key={element.id} style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+                    <ElementWrapper element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+                      <div className="overlay-element" style={{ background: overlayEl.fill, width: '100%', height: '100%' }} />
+                    </ElementWrapper>
+                  </div>
+                );
+              })}
+              {/* Non-overlay content above overlays */}
+              <div className="sc" style={{ position: 'relative', zIndex: 1 }}>{renderElementsGrouped(slide.elements.filter(el => el.type !== 'overlay'))}</div>
+              {/* Footer */}
+              <div className="ft" style={{ justifyContent: 'center' }}>
+                <span className="ft-theme">{footer}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Selection bubble toolbar — appears above text selection */}
+      {isEditing && selectedElementId && (
+        <SelectionToolbar
+          onBeforeFormat={() => {
+            if (!selectedElementId) return;
+            const element = slide.elements.find((el) => el.id === selectedElementId);
+            if (element && 'content' in element) {
+              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
+                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
+              if (domEl) {
+                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
+              }
+            }
+          }}
+          onAfterFormat={() => {
+            if (!selectedElementId) return;
+            const element = slide.elements.find((el) => el.id === selectedElementId);
+            if (element && 'content' in element) {
+              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
+                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
+              if (domEl) {
+                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* Formatting toolbar */}
+      {isEditing && selectedElementId && selectedElementType && onChangeElementType && (
+        <FormattingToolbar
+          selectedElementId={selectedElementId}
+          selectedElementType={selectedElementType}
+          selectedElementLevel={selectedElementLevel}
+          currentFontSize={selectedElementId ? slide.elements.find(el => el.id === selectedElementId)?.fontSize : undefined}
+          onChangeType={(newType, newLevel) => onChangeElementType(selectedElementId, newType as ElementType, newLevel)}
+          onBeforeFormat={() => {
+            if (!selectedElementId) return;
+            const element = slide.elements.find((el) => el.id === selectedElementId);
+            if (element && 'content' in element) {
+              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
+                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
+              if (domEl) {
+                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
+              }
+            }
+          }}
+          onAfterFormat={() => {
+            if (!selectedElementId) return;
+            const element = slide.elements.find((el) => el.id === selectedElementId);
+            if (element && 'content' in element) {
+              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
+                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
+              if (domEl) {
+                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
+              }
+            }
+          }}
+          onUpdateFontSize={(elementId, fontSize) => {
+            const element = slide.elements.find((el) => el.id === elementId);
+            if (element) {
+              // fontSize === 0 means "reset to theme default" (clear the override)
+              const updated = { ...element };
+              if (fontSize === 0) {
+                delete updated.fontSize;
+              } else {
+                updated.fontSize = fontSize;
+              }
+              onUpdateElement(elementId, updated as SlideElement);
+            }
+          }}
+          themeVars={themeVars}
+          isFreeform={slide.layout === 'freeform'}
+          selectedElement={selectedElement}
+          onUpdateElement={onUpdateElement}
+        />
+      )}
+
+      {/* Image dialog */}
+      <ImageDialog
+        open={imageDialogOpen}
+        onOpenChange={setImageDialogOpen}
+        onImageSelected={handleImageSelected}
+        currentSrc={currentImageElement?.type === 'image' ? currentImageElement.src : undefined}
+        projectId={projectId ?? ''}
+      />
+    </>
+  );
+}
+
+export const SlideRenderer = memo(SlideRendererComponent);

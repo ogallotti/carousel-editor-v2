@@ -1,65 +1,215 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Search } from 'lucide-react';
+import { db, type Project } from '@/lib/db';
+import { createEmptySchema, SCHEMA_VERSION } from '@/types/schema';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ProjectCard } from '@/components/gallery/ProjectCard';
+import { EmptyState } from '@/components/gallery/EmptyState';
+import { CreateProjectDialog } from '@/components/gallery/CreateProjectDialog';
+import { ImportZipButton } from '@/components/gallery/ImportZipButton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+export default function HomePage() {
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [slideCounts, setSlideCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const loadProjects = useCallback(async () => {
+    try {
+      const all = await db.projects.orderBy('updatedAt').reverse().toArray();
+      setProjects(all);
+
+      // Load slide counts from projectData
+      const counts: Record<string, number> = {};
+      for (const p of all) {
+        const data = await db.projectData.get(p.id);
+        if (data?.schema) {
+          const schema = data.schema as { slides?: unknown[] };
+          counts[p.id] = schema.slides?.length ?? 0;
+        }
+      }
+      setSlideCounts(counts);
+    } catch {
+      // DB not ready yet
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  const filteredProjects = useMemo(() => {
+    if (!search.trim()) return projects;
+    const q = search.toLowerCase();
+    return projects.filter((p) => p.title.toLowerCase().includes(q));
+  }, [projects, search]);
+
+  const handleCreate = async (title: string) => {
+    const id = crypto.randomUUID();
+    const now = new Date();
+    const schema = createEmptySchema(id);
+    schema.title = title;
+
+    await db.projects.add({
+      id,
+      title,
+      format: 'carousel',
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.projectData.add({
+      projectId: id,
+      schema: schema as unknown as Record<string, unknown>,
+      version: SCHEMA_VERSION,
+    });
+
+    router.push(`/editor/${id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await db.projects.delete(deleteTarget);
+    await db.projectData.delete(deleteTarget);
+    await db.assets.where('projectId').equals(deleteTarget).delete();
+    setDeleteTarget(null);
+    loadProjects();
+  };
+
+  const handleImport = () => {
+    // Stub: ZIP import not yet implemented
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  const hasProjects = projects.length > 0;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center size-8 rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">C</span>
+            </div>
+            <h1 className="text-lg font-semibold tracking-tight">Carousel Editor</h1>
+          </div>
+
+          {hasProjects && (
+            <div className="flex items-center gap-2">
+              <ImportZipButton onImport={handleImport} />
+              <Button
+                size="sm"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus className="size-4" />
+                Novo
+              </Button>
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </header>
+
+      {/* Content */}
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        {hasProjects ? (
+          <>
+            {/* Search */}
+            <div className="relative mb-6 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar projetos..."
+                className="pl-9"
+              />
+            </div>
+
+            {/* Grid */}
+            {filteredProjects.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {filteredProjects.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    slideCount={slideCounts[project.id] ?? 0}
+                    onDelete={setDeleteTarget}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <p className="text-sm">Nenhum projeto encontrado para "{search}"</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <EmptyState
+            onCreateNew={() => setCreateOpen(true)}
+            onImportZip={() => importInputRef.current?.click()}
+          />
+        )}
       </main>
+
+      {/* Create dialog */}
+      <CreateProjectDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreate={handleCreate}
+      />
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir projeto</DialogTitle>
+            <DialogDescription>
+              Tem certeza? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden import input for empty state */}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".zip"
+        className="hidden"
+        onChange={() => handleImport()}
+      />
     </div>
   );
 }

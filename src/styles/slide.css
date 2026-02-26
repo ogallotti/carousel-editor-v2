@@ -1,0 +1,460 @@
+/* ============================================================
+   Slide Renderer CSS
+   Reproduces the exact visual of standalone carousel HTMLs.
+   Uses CSS variables from the carousel theme.
+   ============================================================ */
+
+.slide-wrapper {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.slide-renderer {
+  /* Default theme vars (overridden by inline styles) */
+  --highlight: #fbbf24;
+  --accent: #f59e0b;
+  --bg: #0a0e1a;
+  --bg-subtle: #111827;
+  --text: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --divider: #1e293b;
+  --card-bg: #0f172a;
+  --highlight-soft: rgba(251,191,36,0.10);
+  --highlight-border: rgba(251,191,36,0.25);
+  --icon-color: #fbbf24;
+  --icon-color-alt: #f59e0b;
+
+  /* Editor-only UI colors (NOT tied to slide theme) */
+  --editor-accent: #2563eb;
+  --editor-accent-soft: rgba(37,99,235,0.10);
+  --editor-accent-border: rgba(37,99,235,0.30);
+}
+
+.slide {
+  /* Typography custom properties (overridable via theme panel) */
+  --font-heading: 'Archivo', sans-serif;
+  --font-paragraph: 'Archivo', sans-serif;
+  --font-subtitle: 'Archivo', sans-serif;
+  --font-tag: 'Archivo', sans-serif;
+  --font-quote: 'Archivo', sans-serif;
+  --font-stat: 'Archivo', sans-serif;
+  --weight-heading: 700;
+  --weight-paragraph: 400;
+  --weight-subtitle: 500;
+  --weight-tag: 700;
+  --weight-quote: 500;
+  --weight-stat: 900;
+
+  font-family: 'Archivo', sans-serif;
+  width: 1080px;
+  height: 1440px;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Bold/strong text */
+.slide strong {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Paragraph spacing */
+.slide p + p {
+  margin-top: 20px;
+}
+
+/* (colors applied in main declarations below) */
+
+/* Bare divs in content area (quote-text etc) */
+.slide .sc > div:not(.cover-emoji):not(.img-area):not(.img-bg):not(.stats-grid):not(.stat-item):not(.list-item):not(.highlight-block):not(.divider-line) {
+  font-family: 'Archivo', sans-serif;
+  font-size: 38px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* Header */
+.slide .hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 40px 64px 0;
+  font-size: 24px;
+  color: var(--text-muted);
+}
+
+/* Content area */
+.slide .sc {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 100px;
+  gap: 24px;
+  text-align: center;
+  zoom: var(--font-scale, 1);
+}
+
+/* Footer */
+.slide .ft {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 64px 40px;
+  font-size: 22px;
+  color: var(--text-muted);
+}
+
+.slide .ft .ft-theme {
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Tag */
+.slide .tag {
+  font-family: var(--font-tag);
+  color: var(--accent);
+  font-size: 22px;
+  font-weight: var(--weight-tag);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* Headings */
+.slide h1 {
+  font-family: var(--font-heading);
+  font-size: 72px;
+  font-weight: var(--weight-heading);
+  line-height: 1.05;
+  text-transform: uppercase;
+  text-align: center;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.slide h2 {
+  font-family: var(--font-heading);
+  font-size: 56px;
+  font-weight: var(--weight-heading);
+  line-height: 1.1;
+  text-transform: uppercase;
+  text-align: center;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.slide h3 {
+  font-family: var(--font-heading);
+  font-size: 44px;
+  font-weight: var(--weight-heading);
+  line-height: 1.15;
+  text-align: center;
+  text-wrap: balance;
+  margin: 0;
+}
+
+/* Paragraph */
+.slide p {
+  font-family: var(--font-paragraph);
+  font-size: 38px;
+  font-weight: var(--weight-paragraph);
+  line-height: 1.45;
+  color: var(--text-secondary);
+  text-align: center;
+  text-wrap: balance;
+  margin: 0;
+}
+
+/* Subtitle */
+.slide .sub {
+  font-family: var(--font-subtitle);
+  font-size: 32px;
+  font-weight: var(--weight-subtitle);
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: center;
+  text-wrap: balance;
+  margin: 0;
+}
+
+/* Highlight */
+.slide .hl {
+  color: var(--highlight);
+  font-weight: inherit;
+}
+
+/* Emoji */
+.slide .cover-emoji {
+  font-size: 96px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Quote */
+.slide .quote-mark {
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 0.6;
+  color: var(--icon-color-alt);
+  text-align: center;
+  user-select: none;
+}
+
+.slide .quote-text {
+  font-family: var(--font-quote);
+  font-size: 46px;
+  font-weight: var(--weight-quote);
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--text);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* Stats grid */
+.slide .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+}
+
+.slide .stat-item {
+  text-align: center;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 24px 16px;
+}
+
+.slide .stat-value {
+  font-family: var(--font-stat);
+  font-size: 64px;
+  font-weight: var(--weight-stat);
+  color: var(--highlight);
+  line-height: 1;
+}
+
+.slide .stat-label {
+  font-size: 24px;
+  color: var(--accent);
+  margin-top: 8px;
+}
+
+/* List items */
+.slide .list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 16px;
+  align-items: flex-start;
+}
+
+.slide .list-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-family: var(--font-paragraph);
+  font-size: 36px;
+  font-weight: var(--weight-paragraph);
+  color: var(--text-secondary);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.slide .list-item strong {
+  color: var(--text);
+}
+
+.slide .list-item .icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.slide .list-icon {
+  color: var(--icon-color);
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+
+/* Image */
+.slide .img-area {
+  width: 100%;
+  height: 500px;
+  border-radius: var(--img-border-radius, 16px);
+  overflow: hidden;
+  margin: 16px 0;
+  position: relative;
+}
+
+.slide .img-area img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.slide .img-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.slide .img-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slide .img-bg + .sc {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+}
+
+/* Divider */
+.slide .divider-line {
+  width: 80px;
+  height: 3px;
+  background: var(--divider);
+  border-radius: 2px;
+}
+
+/* Highlight block */
+.slide .highlight-block {
+  background: var(--highlight-soft);
+  border: 1px solid var(--highlight-border);
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.slide .highlight-block p {
+  color: var(--text);
+}
+
+/* Counter in header */
+.slide .slide-counter {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Freeform Layout
+   ============================================================ */
+
+.slide-freeform {
+  position: relative;
+  width: 1080px;
+  height: 1440px;
+  overflow: hidden;
+}
+
+.slide-freeform .freeform-element {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+}
+
+.slide-freeform .freeform-element:not(.no-select) {
+  transition: outline 0.15s ease;
+}
+
+.slide-freeform .freeform-element.selected {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 0;
+}
+
+.slide-freeform .freeform-element:hover:not(.selected) {
+  outline: 1px solid var(--editor-accent-border);
+  outline-offset: 0;
+}
+
+.slide-freeform .drag-handle {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  background: rgba(30, 30, 40, 0.9);
+  border: 1px solid var(--editor-accent-border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 20;
+}
+
+.slide-freeform .drag-handle:active {
+  cursor: grabbing;
+}
+
+.slide-freeform .freeform-element:hover .drag-handle,
+.slide-freeform .freeform-element.selected .drag-handle {
+  opacity: 1;
+}
+
+.slide-freeform .drag-handle svg {
+  width: 14px;
+  height: 14px;
+  color: var(--editor-accent);
+}
+
+.slide-freeform .resize-handle {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--editor-accent);
+  border: 1px solid var(--bg);
+  border-radius: 2px;
+  cursor: se-resize;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 20;
+}
+
+.slide-freeform .freeform-element:hover .resize-handle,
+.slide-freeform .freeform-element.selected .resize-handle {
+  opacity: 1;
+}
+
+/* Freeform elements should not have default margins */
+.slide-freeform .freeform-element > * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Freeform text elements default styles */
+.slide-freeform .freeform-element .tag,
+.slide-freeform .freeform-element h1,
+.slide-freeform .freeform-element h2,
+.slide-freeform .freeform-element h3,
+.slide-freeform .freeform-element p,
+.slide-freeform .freeform-element .sub,
+.slide-freeform .freeform-element .quote-text,
+.slide-freeform .freeform-element .highlight-block,
+.slide-freeform .freeform-element .stats-grid,
+.slide-freeform .freeform-element .list-item {
+  text-align: inherit; /* Inherit from freeform wrapper (supports inline textAlign) */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.slide-freeform .freeform-element [contenteditable]:focus {
+  outline: none;
+}

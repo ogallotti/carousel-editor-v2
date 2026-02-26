@@ -30,6 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# debug screenshots & playwright
+*.png
+!src/**/*.png
+!public/**/*.png
+.playwright-mcp/
+test-image.*
+
 # env files (can opt-in for committing if needed)
 .env*
 

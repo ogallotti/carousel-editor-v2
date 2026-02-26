@@ -54,13 +54,58 @@ def el(el_type, **kwargs):
     return base
 
 
+# Each freeform template defines: (function, elements_builder)
+# Elements vary per slide function — NOT every slide needs tag+heading+paragraph
+def _elements_problema():
+    """Tag + heading + paragraph na base"""
+    return [
+        el("tag", content="PROBLEMA", x=80, y=100, w=300, zIndex=2),
+        el("heading", level=2, content="A dor que o publico sente", x=80, y=170, w=920, fontSize=44, zIndex=2),
+        el("paragraph", content="Texto detalhado sobre o problema que o publico enfrenta.", x=80, y=1100, w=920, fontSize=24, zIndex=2),
+    ]
+
+def _elements_insight():
+    """Heading centralizado grande (dado em destaque, sem tag)"""
+    return [
+        el("heading", level=1, content="73% dos profissionais ignoram esse dado.", x=80, y=580, w=920, fontSize=56, textAlign="center", zIndex=2),
+    ]
+
+def _elements_metodo():
+    """Heading + lista de passos (sem tag)"""
+    return [
+        el("heading", level=2, content="Como aplicar na pratica", x=80, y=100, w=920, fontSize=44, zIndex=2),
+        el("list-item", icon="01", content="Primeiro passo concreto com contexto", x=80, y=1000, w=920, fontSize=24, zIndex=2),
+        el("list-item", icon="02", content="Segundo passo concreto com contexto", x=80, y=1100, w=920, fontSize=24, zIndex=2),
+        el("list-item", icon="03", content="Terceiro passo concreto com contexto", x=80, y=1200, w=920, fontSize=24, zIndex=2),
+    ]
+
+def _elements_exemplo():
+    """Tag + heading + paragraph (caso com numeros)"""
+    return [
+        el("tag", content="CASO REAL", x=80, y=100, w=300, zIndex=2),
+        el("heading", level=2, content="Caso real com numeros", x=80, y=170, w=920, fontSize=44, zIndex=2),
+        el("paragraph", content="Antes e depois mensuravel que sustenta a tese.", x=80, y=1100, w=920, fontSize=24, zIndex=2),
+    ]
+
+def _elements_prova():
+    """Quote centralizado (sem tag, sem heading)"""
+    return [
+        el("quote", content="Resultado concreto e mensuravel em contexto real.", attribution="Fonte verificavel", x=80, y=520, w=920, fontSize=40, textAlign="center", zIndex=2),
+    ]
+
+def _elements_virada():
+    """Heading na base (frase curta de impacto, sem nada mais)"""
+    return [
+        el("heading", level=1, content="O que ninguem percebeu ainda.", x=80, y=1040, w=920, fontSize=52, zIndex=2),
+    ]
+
 FREEFORM_TEMPLATES = [
-    ("PROBLEMA", "A dor que o publico sente", "Texto detalhado sobre o problema que o publico enfrenta."),
-    ("INSIGHT", "A descoberta que muda a perspectiva", "Texto explicando o insight com dados concretos."),
-    ("METODO", "Como aplicar na pratica", "Passos concretos de execucao com exemplos reais."),
-    ("EXEMPLO", "Caso real com numeros", "Antes e depois mensuravel que sustenta a tese."),
-    ("PROVA", "Dados que sustentam a tese", "Resultado concreto e mensuravel em contexto real."),
-    ("VIRADA", "O que ninguem percebeu ainda", "Perspectiva que o publico nao esperava encontrar."),
+    _elements_problema,
+    _elements_insight,
+    _elements_metodo,
+    _elements_exemplo,
+    _elements_prova,
+    _elements_virada,
 ]
 
 TEXT_TEMPLATES = [
@@ -131,16 +176,15 @@ def build_slides(title, slides_total):
             slides.append({"id": uid(), "layout": layout, "elements": elements})
             text_cursor += 1
         else:
-            tag, heading, body = FREEFORM_TEMPLATES[freeform_cursor % len(FREEFORM_TEMPLATES)]
+            elements_fn = FREEFORM_TEMPLATES[freeform_cursor % len(FREEFORM_TEMPLATES)]
+            body_elements = elements_fn()
             slides.append({
                 "id": uid(),
                 "layout": "freeform",
                 "backgroundImage": "assets/scene-%02d.jpg" % scene_idx,
                 "elements": [
                     el("overlay", fill=OVERLAY_FADE_TOP_BOTTOM, x=0, y=0, w=1080, h=1440, zIndex=1),
-                    el("tag", content=tag, x=80, y=100, w=300, zIndex=2),
-                    el("heading", level=2, content=heading, x=80, y=170, w=920, fontSize=44, zIndex=2),
-                    el("paragraph", content=body, x=80, y=1100, w=920, fontSize=24, zIndex=2),
+                    *body_elements,
                 ],
             })
             scene_idx += 1

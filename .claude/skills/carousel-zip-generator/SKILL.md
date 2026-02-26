@@ -441,7 +441,19 @@ Cada slide:
 
 ### Padrão Editorial Freeform (USAR SEMPRE QUE TIVER IMAGEM)
 
-Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`** com este padrão:
+Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`** com overlay + elementos posicionados.
+
+**REGRA SOBRE ELEMENTOS**: O único elemento obrigatório em slides freeform é o `overlay`. Todos os outros (tag, heading, paragraph, subtitle, quote, emoji, image, etc.) são opcionais e devem ser escolhidos com base no conteúdo daquele slide específico. NÃO repetir a mesma combinação de elementos em todos os slides. Cada slide tem uma função narrativa diferente e os elementos devem refletir isso.
+
+Exemplos de combinações válidas:
+- **Hook/Capa**: overlay + heading grande na base (sem tag, sem parágrafo)
+- **Problema com contexto**: overlay + tag no topo + heading + parágrafo na base
+- **Dado em destaque**: overlay + heading centralizado (só o número/dado)
+- **Citação visual**: overlay + quote centralizado
+- **Método**: overlay + heading + lista de passos (list-items)
+- **CTA**: overlay + heading + parágrafo curto na base
+
+Exemplo de slide freeform (uma das muitas combinações possíveis):
 
 ```json
 {
@@ -456,23 +468,17 @@ Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`**
       "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
     },
     {
-      "id": "tag-id",
-      "type": "tag",
-      "content": "TÓPICO",
-      "x": 80, "y": 100, "w": 300, "zIndex": 2
-    },
-    {
       "id": "heading-id",
       "type": "heading",
-      "level": 1,
+      "level": 2,
       "content": "Frase de impacto do slide.",
-      "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2
+      "x": 80, "y": 1040, "w": 920, "fontSize": 44, "zIndex": 2
     },
     {
       "id": "paragraph-id",
       "type": "paragraph",
       "content": "Texto detalhado posicionado na parte inferior do slide.",
-      "x": 80, "y": 1100, "w": 920, "fontSize": 24, "zIndex": 2
+      "x": 80, "y": 1200, "w": 920, "fontSize": 24, "zIndex": 2
     }
   ]
 }
@@ -480,8 +486,8 @@ Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`**
 
 **Regras de posicionamento (canvas 1080x1440):**
 - **Padding lateral**: `x: 80`, `w: 920` (80px de cada lado)
-- **Tag no topo**: `y: 80–120`
-- **Heading abaixo da tag**: `y: 150–200`
+- **Tag (quando usar)**: `y: 80–120`, no topo. Usar apenas quando o slide precisa de categorização.
+- **Heading**: posição varia conforme layout do slide (topo `y: 100–200`, centro `y: 600`, base `y: 1000–1100`)
 - **Texto longo na base**: `y: 1000–1200` (ajustar conforme tamanho do texto)
 - **Overlay sempre**: `x:0, y:0, w:1080, h:1440, zIndex:1`
 - **Texto sempre**: `zIndex: 2` (acima do overlay)

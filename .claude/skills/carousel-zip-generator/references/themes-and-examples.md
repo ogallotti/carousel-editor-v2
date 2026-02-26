@@ -528,6 +528,7 @@ Topic: "Produtividade para Desenvolvedores"
       "id": "s03",
       "layout": "freeform",
       "backgroundImage": "assets/scene-03.jpg",
+      "comment": "Slide de DADO — heading centralizado grande, sem tag, sem paragraph",
       "elements": [
         {
           "id": "s03-ov", "type": "overlay",
@@ -535,19 +536,9 @@ Topic: "Produtividade para Desenvolvedores"
           "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
         },
         {
-          "id": "s03-tag", "type": "tag",
-          "content": "O INSIGHT",
-          "x": 80, "y": 100, "w": 250, "zIndex": 2
-        },
-        {
           "id": "s03-h1", "type": "heading", "level": 1,
-          "content": "Produtividade não é velocidade. É foco.",
-          "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2
-        },
-        {
-          "id": "s03-p1", "type": "paragraph",
-          "content": "Os devs mais produtivos não digitam mais rápido. Eles eliminam decisões desnecessárias, automatizam o repetitivo e protegem blocos de 2h para código que importa.",
-          "x": 80, "y": 1080, "w": 920, "fontSize": 23, "zIndex": 2
+          "content": "Os devs mais produtivos eliminam 60% das decisões do dia antes das 9h.",
+          "x": 80, "y": 520, "w": 920, "fontSize": 52, "textAlign": "center", "zIndex": 2
         }
       ]
     },
@@ -555,6 +546,7 @@ Topic: "Produtividade para Desenvolvedores"
       "id": "s04",
       "layout": "freeform",
       "backgroundImage": "assets/scene-04.jpg",
+      "comment": "Slide de MÉTODO — heading + list-items, sem tag",
       "elements": [
         {
           "id": "s04-ov", "type": "overlay",
@@ -562,19 +554,24 @@ Topic: "Produtividade para Desenvolvedores"
           "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1
         },
         {
-          "id": "s04-tag", "type": "tag",
-          "content": "MÉTODO",
-          "x": 80, "y": 100, "w": 200, "zIndex": 2
-        },
-        {
           "id": "s04-h1", "type": "heading", "level": 1,
           "content": "3 blocos por dia. Sem exceção.",
-          "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2
+          "x": 80, "y": 100, "w": 920, "fontSize": 44, "zIndex": 2
         },
         {
-          "id": "s04-p1", "type": "paragraph",
-          "content": "Manhã: deep work (feature principal). Tarde: code review + comunicação. Final: automação e cleanup. O segredo não é fazer mais coisas, é fazer as certas na hora certa.",
-          "x": 80, "y": 1060, "w": 920, "fontSize": 23, "zIndex": 2
+          "id": "s04-li1", "type": "list-item", "icon": "01",
+          "content": "Manhã: 2h de deep work na feature principal, sem Slack, sem reunião",
+          "x": 80, "y": 980, "w": 920, "fontSize": 24, "zIndex": 2
+        },
+        {
+          "id": "s04-li2", "type": "list-item", "icon": "02",
+          "content": "Tarde: code review, comunicação assíncrona e alinhamentos rápidos",
+          "x": 80, "y": 1100, "w": 920, "fontSize": 24, "zIndex": 2
+        },
+        {
+          "id": "s04-li3", "type": "list-item", "icon": "03",
+          "content": "Final do dia: automação de tarefas repetitivas e cleanup de tech debt",
+          "x": 80, "y": 1220, "w": 920, "fontSize": 24, "zIndex": 2
         }
       ]
     },
@@ -635,9 +632,14 @@ Topic: "Produtividade para Desenvolvedores"
 - **TODOS** os slides usam `layout: "freeform"` + `backgroundImage`
 - **Overlay** em todos os slides: `x:0, y:0, w:1080, h:1440, zIndex:1`
 - **Textos** sempre `zIndex: 2`, padding `x:80, w:920`
-- **Capa** (slide 1): texto na base, overlay fade-to-top
-- **Corpo** (slides 2-5): tag no topo + heading abaixo + parágrafo na base
+- **Capa** (slide 1): heading+paragraph na base, overlay fade-to-top
+- **Corpo com variedade de elementos:**
+  - Slide 2 (problema): tag + heading + paragraph
+  - Slide 3 (dado): heading centralizado grande (SEM tag, SEM paragraph)
+  - Slide 4 (método): heading + list-items (SEM tag)
+  - Slide 5 (resultado): heading + paragraph (SEM tag)
 - **CTA** (slide 6): texto na base, overlay fade-to-top, handle centralizado
+- **Nota:** Cada slide usa os elementos que sua função narrativa pede — NÃO repetir tag+heading+paragraph em todos
 
 **ZIP structure:**
 ```

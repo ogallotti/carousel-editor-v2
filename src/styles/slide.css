@@ -53,6 +53,9 @@
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  /* Creates a stacking context so freeform overlay elements with z-index: -1
+     render above the slide background instead of escaping to a parent context */
+  isolation: isolate;
 }
 
 /* Bold/strong text */

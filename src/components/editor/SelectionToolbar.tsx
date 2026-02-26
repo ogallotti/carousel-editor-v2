@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Bold, Italic, Underline, Palette, AArrowUp, AArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -118,13 +119,21 @@ export function SelectionToolbar({
       return;
     }
 
-    // Position above the selection
+    // Position above the selection (fixed positioning = viewport coords)
     const toolbarHeight = 44;
     const gap = 8;
-    const top = rect.top - toolbarHeight - gap + window.scrollY;
-    const left = rect.left + rect.width / 2 + window.scrollX;
+    let top = rect.top - toolbarHeight - gap;
+    const left = Math.min(
+      Math.max(120, rect.left + rect.width / 2),
+      window.innerWidth - 120
+    );
 
-    setPosition({ top: Math.max(4, top), left });
+    // If there's no room above, position below
+    if (top < 4) {
+      top = rect.bottom + gap;
+    }
+
+    setPosition({ top, left });
     setVisible(true);
   }, [isSelectionInContainer, colorOpen]);
 
@@ -192,7 +201,8 @@ export function SelectionToolbar({
 
   if (!visible) return null;
 
-  return (
+  // Render via portal to escape any CSS transform containers that break position:fixed
+  return createPortal(
     <div
       ref={toolbarRef}
       className="fixed z-[99999] flex items-center gap-0.5 rounded-xl border border-border/60 bg-popover/95 px-1.5 py-1 shadow-xl backdrop-blur-md"
@@ -307,6 +317,7 @@ export function SelectionToolbar({
       >
         <AArrowUp className="size-3.5" />
       </Button>
-    </div>
+    </div>,
+    document.body
   );
 }

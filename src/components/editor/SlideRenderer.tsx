@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
-import { ArrowUp, ArrowDown, Copy, Trash2, Image } from 'lucide-react';
+import { Copy, Trash2, Image } from 'lucide-react';
 import type { Slide, SlideElement, Theme, ElementType, OverlayElement, HighlightElement, QuoteElement, ListItemElement, DividerElement, ImageElement } from '@/types/schema';
 import type { GuideLine } from '@/hooks/useSmartGuides';
 import { themeToCSVars } from '@/lib/theme-utils';
@@ -9,7 +9,6 @@ import { useAssetContext } from '@/lib/asset-urls';
 import { ImageDialog } from './ImageDialog';
 import { EmojiPicker } from './EmojiPicker';
 import { IconPicker } from './IconPicker';
-import { FormattingToolbar } from './FormattingToolbar';
 import { SelectionToolbar } from './SelectionToolbar';
 import { FreeformElement } from './FreeformElement';
 import { SmartGuideOverlay } from './SmartGuideOverlay';
@@ -42,7 +41,6 @@ interface SlideRendererProps {
   onChangeElementType?: (elementId: string, newType: ElementType, newLevel?: number) => void;
   onDeleteElement?: (elementId: string) => void;
   onDuplicateElement?: (elementId: string) => void;
-  onMoveElement?: (elementId: string, direction: 'up' | 'down') => void;
   onUpdateSlideBgPosition?: (pos: string) => void;
   scale?: number;
   projectId?: string;
@@ -56,16 +54,23 @@ function themeToStyle(vars: Record<string, string>): React.CSSProperties {
   return style as React.CSSProperties;
 }
 
+// Style overrides that must be applied DIRECTLY on inner elements (h1, h2, p, .tag, .sub, etc.)
+// because slide.css rules like `.slide h2 { font-size: 56px }` have higher specificity than
+// inherited values from a parent wrapper div.
+function getElementInlineStyle(element: SlideElement): React.CSSProperties {
+  const style: React.CSSProperties = {};
+  if (element.fontSize !== undefined) style.fontSize = `${element.fontSize}px`;
+  if (element.fontFamily) style.fontFamily = `'${element.fontFamily}', sans-serif`;
+  if (element.fontWeight !== undefined) style.fontWeight = element.fontWeight;
+  if (element.color) style.color = element.color;
+  if (element.textAlign) style.textAlign = element.textAlign;
+  return style;
+}
+
 function ElementControls({
-  element,
-  onUpdate,
-  onMove,
   onDuplicate,
   onDelete,
 }: {
-  element: SlideElement;
-  onUpdate: (el: SlideElement) => void;
-  onMove?: (direction: 'up' | 'down') => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
 }) {
@@ -75,20 +80,6 @@ function ElementControls({
     <div className="absolute opacity-0 transition-opacity group-hover/el:opacity-100 z-[99998] left-full top-0 ml-2 flex flex-col gap-1"
       data-editor-control
       onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-      {/* Move up */}
-      {onMove && (
-        <button type="button" className={btnClass} title="Mover pra cima" data-editor-control
-          onClick={(e) => { e.stopPropagation(); onMove('up'); }}>
-          <ArrowUp className="size-5" />
-        </button>
-      )}
-      {/* Move down */}
-      {onMove && (
-        <button type="button" className={btnClass} title="Mover pra baixo" data-editor-control
-          onClick={(e) => { e.stopPropagation(); onMove('down'); }}>
-          <ArrowDown className="size-5" />
-        </button>
-      )}
       {/* Duplicate */}
       {onDuplicate && (
         <button type="button" className={btnClass} title="Duplicar elemento" data-editor-control
@@ -112,30 +103,26 @@ function ElementWrapper({
   isEditing,
   isSelected,
   onSelect,
-  onUpdate,
-  onMove,
   onDuplicate,
   onDelete,
+  className: extraClassName,
   children,
 }: {
   element: SlideElement;
   isEditing: boolean;
   isSelected: boolean;
   onSelect: () => void;
-  onUpdate: (el: SlideElement) => void;
-  onMove?: (direction: 'up' | 'down') => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
+  className?: string;
   children: React.ReactNode;
 }) {
+  // Only margins and opacity belong on the wrapper div.
+  // fontSize, fontFamily, fontWeight, color, textAlign must go on inner elements
+  // via getElementInlineStyle() to beat CSS specificity (e.g. `.slide h2 { font-size: 56px }`).
   const style: React.CSSProperties = {};
   if (element.marginTop !== undefined) style.marginTop = `${element.marginTop}px`;
   if (element.marginBottom !== undefined) style.marginBottom = `${element.marginBottom}px`;
-  if (element.fontSize !== undefined) style.fontSize = `${element.fontSize}px`;
-  if (element.textAlign) style.textAlign = element.textAlign;
-  if (element.fontFamily) style.fontFamily = `'${element.fontFamily}', sans-serif`;
-  if (element.fontWeight !== undefined) style.fontWeight = element.fontWeight;
-  if (element.color) style.color = element.color;
   if (element.opacity !== undefined) style.opacity = element.opacity;
 
   return (
@@ -144,7 +131,8 @@ function ElementWrapper({
         'group/el relative',
         isEditing && !isSelected && 'cursor-pointer',
         isSelected && 'outline outline-2 outline-offset-2 rounded outline-[var(--editor-accent)]',
-        isEditing && !isSelected && 'hover:outline hover:outline-1 hover:outline-offset-1 hover:rounded hover:outline-[var(--editor-accent-border)]'
+        isEditing && !isSelected && 'hover:outline hover:outline-1 hover:outline-offset-1 hover:rounded hover:outline-[var(--editor-accent-border)]',
+        extraClassName,
       )}
       style={style}
       data-element-id={element.id}
@@ -160,9 +148,6 @@ function ElementWrapper({
       {children}
       {isEditing && (
         <ElementControls
-          element={element}
-          onUpdate={onUpdate}
-          onMove={onMove}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
         />
@@ -186,7 +171,6 @@ function SlideRendererComponent({
   onChangeElementType,
   onDeleteElement,
   onDuplicateElement,
-  onMoveElement,
   onUpdateSlideBgPosition,
   scale,
   projectId,
@@ -265,8 +249,6 @@ function SlideRendererComponent({
   );
 
   const selectedElement = slide.elements.find((el) => el.id === selectedElementId);
-  const selectedElementType = selectedElement?.type;
-  const selectedElementLevel = selectedElement?.type === 'heading' ? selectedElement.level : undefined;
 
   const handleContentBlur = useCallback(
     (elementId: string, e: React.FocusEvent<HTMLElement>) => {
@@ -449,37 +431,37 @@ function SlideRendererComponent({
     switch (element.type) {
       case 'tag':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <div className="tag" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="tag" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           </ElementWrapper>
         );
 
       case 'heading': {
         const Tag = `h${element.level}` as 'h1' | 'h2' | 'h3';
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <Tag {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <Tag style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           </ElementWrapper>
         );
       }
 
       case 'paragraph':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <p style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           </ElementWrapper>
         );
 
       case 'subtitle':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <p className="sub" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <p className="sub" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           </ElementWrapper>
         );
 
       case 'emoji':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             {isEditing ? (
               <EmojiPicker
                 trigger={
@@ -501,7 +483,7 @@ function SlideRendererComponent({
         const isCropping = cropModeId === element.id;
         const img = element as ImageElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div
               className={element.variant === 'background' ? 'img-bg' : 'img-area'}
               style={{
@@ -563,13 +545,13 @@ function SlideRendererComponent({
       case 'quote': {
         const qt = element as QuoteElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div className="quote-mark" style={{
               ...(qt.quoteMarkColor ? { color: qt.quoteMarkColor } : {}),
               ...(qt.quoteMarkSize !== undefined ? { fontSize: `${qt.quoteMarkSize}px` } : {}),
               ...(qt.quoteMarkOpacity !== undefined ? { opacity: qt.quoteMarkOpacity } : {}),
             }}>&ldquo;</div>
-            <div className="quote-text" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <div className="quote-text" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
             {element.attribution && (
               <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
                 &mdash; {element.attribution}
@@ -582,8 +564,8 @@ function SlideRendererComponent({
       case 'list-item': {
         const li = element as ListItemElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <div className="list-item">
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <div className="list-item" style={getElementInlineStyle(element)}>
               {isEditing ? (
                 <IconPicker
                   trigger={
@@ -613,14 +595,14 @@ function SlideRendererComponent({
       case 'highlight': {
         const hl = element as HighlightElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div className="highlight-block" style={{
               ...(hl.backgroundColor ? { background: hl.backgroundColor } : {}),
               ...(hl.borderColor ? { borderColor: hl.borderColor } : {}),
               ...(hl.borderRadius !== undefined ? { borderRadius: `${hl.borderRadius}px` } : {}),
               ...(hl.padding !== undefined ? { padding: `${hl.padding}px` } : {}),
             }}>
-              <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              <p style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
             </div>
           </ElementWrapper>
         );
@@ -629,7 +611,7 @@ function SlideRendererComponent({
       case 'divider': {
         const div = element as DividerElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div className="divider-line" style={{
               ...(div.dividerColor ? { background: div.dividerColor } : {}),
               ...(div.dividerWidth !== undefined ? { width: `${div.dividerWidth}px` } : {}),
@@ -643,7 +625,7 @@ function SlideRendererComponent({
 
       case 'spacer':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div style={{ height: element.height }} />
           </ElementWrapper>
         );
@@ -651,7 +633,7 @@ function SlideRendererComponent({
       case 'overlay':
         // Fallback for freeform layout; flow overlays are rendered separately as full-slide covers
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div
               className="overlay-element"
               style={{
@@ -679,27 +661,29 @@ function SlideRendererComponent({
     const isSelected = selectedElementId === element.id;
 
     const baseElement = (() => {
+      const inlineStyle = getElementInlineStyle(element);
+
       switch (element.type) {
         case 'tag':
           return (
-            <div className="tag" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <div className="tag" style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           );
 
         case 'heading': {
           const Tag = `h${element.level}` as 'h1' | 'h2' | 'h3';
           return (
-            <Tag {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <Tag style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           );
         }
 
         case 'paragraph':
           return (
-            <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <p style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           );
 
         case 'subtitle':
           return (
-            <p className="sub" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <p className="sub" style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
           );
 
         case 'emoji':
@@ -790,7 +774,7 @@ function SlideRendererComponent({
                 ...(fqt.quoteMarkSize !== undefined ? { fontSize: `${fqt.quoteMarkSize}px` } : {}),
                 ...(fqt.quoteMarkOpacity !== undefined ? { opacity: fqt.quoteMarkOpacity } : {}),
               }}>&ldquo;</div>
-              <div className="quote-text" {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              <div className="quote-text" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
               {element.attribution && (
                 <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
                   &mdash; {element.attribution}
@@ -803,7 +787,7 @@ function SlideRendererComponent({
         case 'list-item': {
           const fli = element as ListItemElement;
           return (
-            <div className="list-item">
+            <div className="list-item" style={getElementInlineStyle(element)}>
               {isEditing ? (
                 <IconPicker
                   trigger={
@@ -877,16 +861,10 @@ function SlideRendererComponent({
 
     if (!baseElement) return null;
 
-    // Build per-element style overrides for freeform content
-    const freeformStyle: React.CSSProperties = {};
-    if (element.fontSize !== undefined) freeformStyle.fontSize = `${element.fontSize}px`;
-    if (element.textAlign) freeformStyle.textAlign = element.textAlign;
-    if (element.fontFamily) freeformStyle.fontFamily = `'${element.fontFamily}', sans-serif`;
-    if (element.fontWeight !== undefined) freeformStyle.fontWeight = element.fontWeight;
-    if (element.color) freeformStyle.color = element.color;
-    if (element.opacity !== undefined) freeformStyle.opacity = element.opacity;
-
-    const hasStyleOverrides = Object.keys(freeformStyle).length > 0;
+    // Opacity is applied on the FreeformElement wrapper (not inner element)
+    const freeformWrapperStyle: React.CSSProperties = {};
+    if (element.opacity !== undefined) freeformWrapperStyle.opacity = element.opacity;
+    const hasWrapperStyle = Object.keys(freeformWrapperStyle).length > 0;
 
     return (
       <FreeformElement
@@ -900,7 +878,7 @@ function SlideRendererComponent({
         otherElements={slide.elements}
         onGuidesChange={setGuides}
       >
-        {hasStyleOverrides ? <div style={freeformStyle}>{baseElement}</div> : baseElement}
+        {hasWrapperStyle ? <div style={freeformWrapperStyle}>{baseElement}</div> : baseElement}
       </FreeformElement>
     );
   };
@@ -974,7 +952,7 @@ function SlideRendererComponent({
                 const overlayEl = element as OverlayElement;
                 return (
                   <div key={element.id} style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-                    <ElementWrapper element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onUpdate={(el) => onUpdateElement(element.id, el)} onMove={onMoveElement ? (dir) => onMoveElement(element.id, dir) : undefined} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+                    <ElementWrapper element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined} className="h-full">
                       <div className="overlay-element" style={{ background: overlayEl.fill, width: '100%', height: '100%' }} />
                     </ElementWrapper>
                   </div>
@@ -1016,56 +994,6 @@ function SlideRendererComponent({
               }
             }
           }}
-        />
-      )}
-
-      {/* Formatting toolbar */}
-      {isEditing && selectedElementId && selectedElementType && onChangeElementType && (
-        <FormattingToolbar
-          selectedElementId={selectedElementId}
-          selectedElementType={selectedElementType}
-          selectedElementLevel={selectedElementLevel}
-          currentFontSize={selectedElementId ? slide.elements.find(el => el.id === selectedElementId)?.fontSize : undefined}
-          onChangeType={(newType, newLevel) => onChangeElementType(selectedElementId, newType as ElementType, newLevel)}
-          onBeforeFormat={() => {
-            if (!selectedElementId) return;
-            const element = slide.elements.find((el) => el.id === selectedElementId);
-            if (element && 'content' in element) {
-              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
-                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
-              if (domEl) {
-                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
-              }
-            }
-          }}
-          onAfterFormat={() => {
-            if (!selectedElementId) return;
-            const element = slide.elements.find((el) => el.id === selectedElementId);
-            if (element && 'content' in element) {
-              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
-                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
-              if (domEl) {
-                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
-              }
-            }
-          }}
-          onUpdateFontSize={(elementId, fontSize) => {
-            const element = slide.elements.find((el) => el.id === elementId);
-            if (element) {
-              // fontSize === 0 means "reset to theme default" (clear the override)
-              const updated = { ...element };
-              if (fontSize === 0) {
-                delete updated.fontSize;
-              } else {
-                updated.fontSize = fontSize;
-              }
-              onUpdateElement(elementId, updated as SlideElement);
-            }
-          }}
-          themeVars={themeVars}
-          isFreeform={slide.layout === 'freeform'}
-          selectedElement={selectedElement}
-          onUpdateElement={onUpdateElement}
         />
       )}
 

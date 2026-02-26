@@ -82,12 +82,6 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
     [selectedSlideIndex, actions]
   );
 
-  const handleMoveElement = useCallback(
-    (elementId: string, direction: 'up' | 'down') => {
-      actions.moveElement(selectedSlideIndex, elementId, direction);
-    },
-    [selectedSlideIndex, actions]
-  );
 
   const handleReorderElement = useCallback(
     (elementId: string, newIndex: number) => {
@@ -121,11 +115,15 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
           return;
       }
 
-      // Preserve positioning from original
+      // Preserve positioning and style overrides from original
       if (element.marginTop !== undefined) newElement.marginTop = element.marginTop;
       if (element.marginBottom !== undefined) newElement.marginBottom = element.marginBottom;
       if (element.fontSize !== undefined) newElement.fontSize = element.fontSize;
       if (element.textAlign !== undefined) newElement.textAlign = element.textAlign;
+      if (element.fontFamily !== undefined) newElement.fontFamily = element.fontFamily;
+      if (element.fontWeight !== undefined) newElement.fontWeight = element.fontWeight;
+      if (element.color !== undefined) newElement.color = element.color;
+      if (element.opacity !== undefined) newElement.opacity = element.opacity;
       if (element.x !== undefined) newElement.x = element.x;
       if (element.y !== undefined) newElement.y = element.y;
       if (element.w !== undefined) newElement.w = element.w;
@@ -341,7 +339,6 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
                   onChangeElementType={isActive ? handleChangeElementType : undefined}
                   onDeleteElement={isActive ? handleDeleteElement : undefined}
                   onDuplicateElement={isActive ? handleDuplicateElement : undefined}
-                  onMoveElement={isActive ? handleMoveElement : undefined}
                   onUpdateSlideBgPosition={isActive ? handleSetSlideBgPosition : undefined}
                   scale={slideScale}
                   projectId={projectId}
@@ -420,8 +417,8 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
             onSelectElement={actions.selectElement}
             onUpdateElement={handleUpdateElement}
             onDeleteElement={handleDeleteElement}
-            onMoveElement={handleMoveElement}
             onReorderElement={handleReorderElement}
+            onChangeElementType={handleChangeElementType}
             onSetTheme={actions.setTheme}
             onSetSlideBg={handleSetSlideBg}
             slideBgImage={currentSlide?.backgroundImage ?? undefined}

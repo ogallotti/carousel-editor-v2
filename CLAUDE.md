@@ -10,23 +10,23 @@ Carousel Editor V2 — Local-First, AI-First visual editor for Instagram carouse
 
 ```bash
 npm run dev        # Start Next.js dev server
-npm run build      # Build static export to out/
-npm run start      # Serve the static build
+npm run build      # Build for production (.next/)
+npm run start      # Start production server
 npm run lint       # ESLint
 ```
 
 ## Architecture
 
 ### 100% Client-Side (No Backend)
-- Next.js 16 with App Router, `output: 'export'` for static hosting
+- Next.js 16 with App Router, SSR mode (no `output: 'export'`)
 - ALL pages use `'use client'` — this is a CSR-only app
 - No API routes, no server components for data
-- Deploy target: Vercel (static), localhost for dev
+- Deploy target: Vercel (standard Next.js), localhost for dev
 
 ### Local-First Persistence
 - **Dexie.js 4** wrapping IndexedDB
 - Database defined in `src/lib/db.ts`
-- Tables: projects, projectData, assets, settings, customThemes
+- Tables: projects, projectData, assets, settings, customThemes, gradientPresets
 - Auto-save with 2s debounce
 
 ### AI Interoperability (ZIP Standard)
@@ -38,17 +38,29 @@ npm run lint       # ESLint
 - **UI**: shadcn/ui (Radix primitives) in `src/components/ui/`
 - **Styling**: Tailwind CSS 4
 - **Icons**: lucide-react
-- **Fonts**: 9 Google Fonts loaded via next/font (Archivo, Inter, Space Grotesk, DM Sans, Poppins, Montserrat, Playfair Display, Merriweather, JetBrains Mono)
+- **Fonts**: 12 Google Fonts loaded via next/font (Afacad, Adamina, Archivo, Inter, Space Grotesk, DM Sans, Poppins, Montserrat, Playfair Display, Merriweather, JetBrains Mono, Fira Code)
 
 ### Key Files
 - `src/types/schema.ts` — CarouselSchema type (core data model)
 - `src/types/editor.ts` — EditorState + EditorAction types
-- `src/lib/db.ts` — Dexie database definition
+- `src/lib/db.ts` — Dexie database definition (v2)
 - `src/lib/projects.ts` — Project CRUD operations
+- `src/lib/custom-themes.ts` — Custom theme CRUD (IndexedDB)
+- `src/lib/gradient-presets.ts` — Gradient preset CRUD (IndexedDB)
 - `src/hooks/useEditorReducer.ts` — Editor state management (50-level undo/redo)
-- `src/components/editor/SlideRenderer.tsx` — Visual slide rendering
+- `src/hooks/useAutoSave.ts` — Auto-save with 2s debounce to IndexedDB
+- `src/hooks/useFreeformDrag.ts` — Freeform element drag/resize handling
+- `src/hooks/useSmartGuides.ts` — Smart alignment guides during drag
+- `src/components/editor/SlideRenderer.tsx` — Visual slide rendering + SelectionToolbar
 - `src/components/editor/EditorWorkspace.tsx` — Editor layout, keyboard shortcuts, panel wiring
-- `src/components/editor/RightPanel.tsx` — Element list + properties panel + theme editor
+- `src/components/editor/LeftPanel.tsx` — Slide navigation, add/delete/duplicate/reorder slides
+- `src/components/editor/RightPanel.tsx` — Element list + all element properties + DnD reorder
+- `src/components/editor/EditorToolbar.tsx` — Top toolbar (undo/redo, export, zoom)
+- `src/components/editor/GradientEditor.tsx` — Full gradient editor UI (stops, angle, presets)
+- `src/components/editor/ThemeEditorPanel.tsx` — Theme presets, colors, typography, custom theme save/load
+- `src/lib/export-png.ts` — PNG export via html-to-image
+- `src/lib/schema-validation.ts` — Schema validation for import/export
+- `src/lib/asset-urls.tsx` — Asset blob URL lifecycle management
 - `src/styles/slide.css` — Slide CSS (1080x1440px, CSS variables)
 - `src/lib/theme-utils.ts` — Theme to CSS variable mapping
 
@@ -59,13 +71,16 @@ npm run lint       # ESLint
 
 ### CSS Variable Architecture
 - `--highlight`, `--accent`, `--bg`, etc. = **slide theme** colors (content styling)
-- `--editor-accent`, `--editor-accent-soft`, `--editor-accent-border` = **editor UI** colors (selection, handles) — always indigo #6366f1, independent of slide theme
+- `--editor-accent`, `--editor-accent-soft`, `--editor-accent-border` = **editor UI** colors (selection, handles) — always blue #2563eb, independent of slide theme
 
 ### Editor Patterns
 - **Background pseudo-element**: `BG_PSEUDO_ID = '__bg__'` in RightPanel — slide background appears as the last item in the element list (bottom = back in z-stack). No delete/move buttons. Click to edit background properties (theme/solid/gradient/image).
 - **Image crop mode**: Double-click on images (element or slide background) enters crop mode — drag to reposition `objectPosition`/`backgroundPosition`. Escape exits.
 - **Freeform layout**: Elements use absolute positioning with drag/resize handles, smart guides, and arrow key nudge.
 - **data-editor-control**: Attribute on UI controls that should be excluded from PNG export.
+- **Two toolbar layers**: RightPanel has ALL canonical element properties (type, font, margins, alignment, color, opacity, etc.). SelectionToolbar (floating) appears only on text selection for inline span overrides (bold, italic, underline, color, size).
+- **Radix UI gotcha**: `<SelectItem value="">` crashes — use sentinel `"__default__"` and convert in `onValueChange`.
+- **Element DnD reorder**: RightPanel element list uses HTML5 drag-and-drop (reversed display order → array index conversion).
 
 ## Schema Version
 Current: v1. See `src/types/schema.ts` for the full spec.
@@ -73,8 +88,8 @@ Current: v1. See `src/types/schema.ts` for the full spec.
 ## UI Language
 All user-facing text is in **Brazilian Portuguese**.
 
-## Element Types (13)
-tag, heading, paragraph, subtitle, emoji, image, overlay, quote, stat, list-item, highlight, divider, spacer
+## Element Types (12)
+tag, heading, paragraph, subtitle, emoji, image, overlay, quote, list-item, highlight, divider, spacer
 
-## Layout Types (12)
-cover, title-body, full-text, image-top, image-bottom, image-full, stats, quote, list, highlight, cta, freeform
+## Layout Types (11)
+cover, title-body, full-text, image-top, image-bottom, image-full, quote, list, highlight, cta, freeform

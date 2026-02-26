@@ -7,6 +7,12 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlignHorizontalDistributeStart,
+  AlignHorizontalDistributeEnd,
+  AlignHorizontalJustifyCenter,
+  AlignVerticalDistributeStart,
+  AlignVerticalDistributeEnd,
+  AlignVerticalJustifyCenter,
   Tag,
   Quote,
   Image,
@@ -81,8 +87,8 @@ interface RightPanelProps {
   onSelectElement: (id: string | null) => void;
   onUpdateElement: (elementId: string, element: SlideElement) => void;
   onDeleteElement: (elementId: string) => void;
-  onMoveElement: (elementId: string, direction: 'up' | 'down') => void;
   onReorderElement?: (elementId: string, newIndex: number) => void;
+  onChangeElementType?: (elementId: string, newType: ElementType, newLevel?: number) => void;
   onSetTheme: (theme: Theme) => void;
   onSetSlideBg: (color: string | undefined) => void;
   slideBgImage?: string;
@@ -151,6 +157,7 @@ function NumberField({
   min,
   max,
   step = 1,
+  placeholder,
 }: {
   label: string;
   value: number | undefined;
@@ -158,6 +165,7 @@ function NumberField({
   min?: number;
   max?: number;
   step?: number;
+  placeholder?: string;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -165,6 +173,7 @@ function NumberField({
       <Input
         type="number"
         value={value ?? ''}
+        placeholder={placeholder}
         min={min}
         max={max}
         step={step}
@@ -655,17 +664,56 @@ function SlideBackgroundSection({
   );
 }
 
+// ─── Default font sizes from slide.css ──────────────────────
+
+const DEFAULT_FONT_SIZES: Record<string, number> = {
+  tag: 22,
+  h1: 72,
+  h2: 56,
+  h3: 44,
+  paragraph: 38,
+  subtitle: 32,
+  quote: 46,
+  'list-item': 36,
+  highlight: 38,
+};
+
+function getDefaultFontSize(type: string, level?: number): number {
+  if (type === 'heading') return DEFAULT_FONT_SIZES[`h${level ?? 1}`] ?? 72;
+  return DEFAULT_FONT_SIZES[type] ?? 38;
+}
+
+// Type conversion options for the element type dropdown
+const CONVERTIBLE_TYPES = [
+  { value: 'tag', label: 'Tag' },
+  { value: 'h1', label: 'H1 — Grande' },
+  { value: 'h2', label: 'H2 — Médio' },
+  { value: 'h3', label: 'H3 — Pequeno' },
+  { value: 'paragraph', label: 'Parágrafo' },
+  { value: 'subtitle', label: 'Subtítulo' },
+];
+
+function getTypeSelectValue(type: string, level?: number): string {
+  if (type === 'heading') return `h${level ?? 1}`;
+  return type;
+}
+
+const SLIDE_WIDTH = 1080;
+const SLIDE_HEIGHT = 1440;
+
 // ─── Element Properties Panel ───────────────────────────────
 
 function ElementProperties({
   element,
   isFreeform,
   onUpdate,
+  onChangeType,
   projectId,
 }: {
   element: SlideElement;
   isFreeform: boolean;
   onUpdate: (el: SlideElement) => void;
+  onChangeType?: (newType: string, newLevel?: number) => void;
   projectId: string;
 }) {
   const set = useCallback(
@@ -679,11 +727,43 @@ function ElementProperties({
     'heading', 'paragraph', 'subtitle', 'tag', 'quote', 'highlight', 'list-item',
   ].includes(element.type);
 
+  // Determine if this element type can be converted
+  const isConvertible = ['heading', 'paragraph', 'subtitle', 'tag'].includes(element.type);
+
+  const headingLevel = element.type === 'heading' ? (element as HeadingElement).level : undefined;
+  const defaultFontSize = getDefaultFontSize(element.type, headingLevel);
+
   return (
     <div className="space-y-2.5">
       <SectionLabel>
         Propriedades — {ELEMENT_TYPE_LABELS[element.type]}
       </SectionLabel>
+
+      {/* ── Element type conversion (convertible text elements) ── */}
+      {isConvertible && onChangeType && (
+        <div className="flex items-center gap-2">
+          <Label className="w-20 shrink-0 text-[11px] text-muted-foreground">Tipo</Label>
+          <Select
+            value={getTypeSelectValue(element.type, headingLevel)}
+            onValueChange={(v) => {
+              if (v.startsWith('h')) {
+                onChangeType('heading', Number(v[1]));
+              } else {
+                onChangeType(v);
+              }
+            }}
+          >
+            <SelectTrigger size="sm" className="h-7 w-full text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CONVERTIBLE_TYPES.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* ── Text alignment (all text elements) ── */}
       {isTextElement && (
@@ -696,22 +776,30 @@ function ElementProperties({
       {/* ── Common text properties ── */}
       {isTextElement && (
         <>
-          <NumberField
-            label="Fonte (px)"
+          <SliderField
+            label="Fonte"
             value={element.fontSize}
-            onChange={(v) => set('fontSize' as keyof SlideElement, v as never)}
+            defaultValue={defaultFontSize}
+            onChange={(v) => onUpdate({ ...element, fontSize: v } as SlideElement)}
             min={8}
             max={200}
+            suffix="px"
           />
           <NumberField
             label="Margem sup."
             value={element.marginTop}
             onChange={(v) => set('marginTop' as keyof SlideElement, v as never)}
+            min={-200}
+            max={200}
+            placeholder="0"
           />
           <NumberField
             label="Margem inf."
             value={element.marginBottom}
             onChange={(v) => set('marginBottom' as keyof SlideElement, v as never)}
+            min={-200}
+            max={200}
+            placeholder="0"
           />
 
           {/* Font family */}
@@ -777,28 +865,6 @@ function ElementProperties({
             suffix="%"
           />
         </>
-      )}
-
-      {/* ── Heading: level ── */}
-      {element.type === 'heading' && (
-        <div className="flex items-center gap-2">
-          <Label className="w-20 shrink-0 text-[11px] text-muted-foreground">Nivel</Label>
-          <Select
-            value={String((element as HeadingElement).level ?? 1)}
-            onValueChange={(v) =>
-              onUpdate({ ...element, level: Number(v) as 1 | 2 | 3 } as SlideElement)
-            }
-          >
-            <SelectTrigger size="sm" className="h-7 w-full text-xs">
-              <SelectValue placeholder="H1" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">H1 — Grande</SelectItem>
-              <SelectItem value="2">H2 — Médio</SelectItem>
-              <SelectItem value="3">H3 — Pequeno</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       )}
 
       {/* ── Quote: attribution ── */}
@@ -1038,29 +1104,75 @@ function ElementProperties({
             />
           </div>
 
-          {/* Quick center actions */}
-          <div className="mt-1 flex gap-1.5">
+          {/* Position alignment buttons (6-direction) */}
+          <SectionLabel>Alinhar no slide</SectionLabel>
+          <div className="flex gap-0.5">
             <Button
-              variant="outline"
-              size="sm"
-              className="h-7 flex-1 text-xs"
-              onClick={() => {
-                const w = element.w ?? 200;
-                onUpdate({ ...element, x: Math.round((1080 - w) / 2) } as SlideElement);
-              }}
+              variant="ghost"
+              size="icon-xs"
+              className="size-7"
+              title="Esquerda"
+              onClick={() => onUpdate({ ...element, x: 0 } as SlideElement)}
             >
-              Centralizar H
+              <AlignHorizontalDistributeStart className="size-3.5" />
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              className="h-7 flex-1 text-xs"
+              variant="ghost"
+              size="icon-xs"
+              className="size-7"
+              title="Centro horizontal"
               onClick={() => {
-                const h = element.h ?? 200;
-                onUpdate({ ...element, y: Math.round((1440 - h) / 2) } as SlideElement);
+                const w = element.w ?? 200;
+                onUpdate({ ...element, x: Math.round((SLIDE_WIDTH - w) / 2) } as SlideElement);
               }}
             >
-              Centralizar V
+              <AlignHorizontalJustifyCenter className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="size-7"
+              title="Direita"
+              onClick={() => {
+                const w = element.w ?? 200;
+                onUpdate({ ...element, x: SLIDE_WIDTH - w } as SlideElement);
+              }}
+            >
+              <AlignHorizontalDistributeEnd className="size-3.5" />
+            </Button>
+            <div className="mx-1 w-px bg-border/50" />
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="size-7"
+              title="Topo"
+              onClick={() => onUpdate({ ...element, y: 0 } as SlideElement)}
+            >
+              <AlignVerticalDistributeStart className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="size-7"
+              title="Centro vertical"
+              onClick={() => {
+                const h = element.h ?? 200;
+                onUpdate({ ...element, y: Math.round((SLIDE_HEIGHT - h) / 2) } as SlideElement);
+              }}
+            >
+              <AlignVerticalJustifyCenter className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="size-7"
+              title="Fundo"
+              onClick={() => {
+                const h = element.h ?? 200;
+                onUpdate({ ...element, y: SLIDE_HEIGHT - h } as SlideElement);
+              }}
+            >
+              <AlignVerticalDistributeEnd className="size-3.5" />
             </Button>
           </div>
 
@@ -1090,8 +1202,8 @@ export function RightPanel({
   onSelectElement,
   onUpdateElement,
   onDeleteElement,
-  onMoveElement: _onMoveElement,
   onReorderElement,
+  onChangeElementType,
   onSetTheme,
   onSetSlideBg,
   slideBgImage,
@@ -1154,9 +1266,12 @@ export function RightPanel({
                 Nenhum elemento neste slide.
               </p>
             ) : (
-              [...slide.elements].reverse().map((el, displayIdx) => {
+              // Freeform: reverse order (last in array = visually on top = first in list, like a layer panel)
+              // Flow layout: array order matches visual order (top of slide = first in array = first in list)
+              (slide.layout === 'freeform' ? [...slide.elements].reverse() : slide.elements).map((el, displayIdx) => {
                 const Icon = ELEMENT_ICONS[el.type];
                 const isSelected = el.id === selectedElementId;
+                const isFreeform = slide.layout === 'freeform';
 
                 return (
                   <div
@@ -1175,8 +1290,10 @@ export function RightPanel({
                       dragCounterRef.current = 0;
                       const draggedId = e.dataTransfer.getData('text/plain');
                       if (draggedId && draggedId !== el.id && onReorderElement) {
-                        // The list is displayed in REVERSE order. Convert display position to array index.
-                        const arrayIdx = slide.elements.length - 1 - displayIdx;
+                        // Convert display position to array index
+                        const arrayIdx = isFreeform
+                          ? slide.elements.length - 1 - displayIdx  // reversed list → convert back
+                          : displayIdx;                              // direct mapping
                         onReorderElement(draggedId, arrayIdx);
                       }
                       setDragElementId(null);
@@ -1256,6 +1373,12 @@ export function RightPanel({
                   element={selectedElement}
                   isFreeform={isFreeform}
                   onUpdate={handleUpdateSelectedElement}
+                  onChangeType={
+                    onChangeElementType && selectedElementId
+                      ? (newType: string, newLevel?: number) =>
+                          onChangeElementType(selectedElementId, newType as ElementType, newLevel)
+                      : undefined
+                  }
                   projectId={projectId ?? ''}
                 />
               </>

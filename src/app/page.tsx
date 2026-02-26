@@ -11,6 +11,7 @@ import { ProjectCard } from '@/components/gallery/ProjectCard';
 import { EmptyState } from '@/components/gallery/EmptyState';
 import { CreateProjectDialog } from '@/components/gallery/CreateProjectDialog';
 import { ImportZipButton } from '@/components/gallery/ImportZipButton';
+import { importZipAsProject } from '@/lib/zip-import';
 import {
   Dialog,
   DialogContent,
@@ -93,8 +94,13 @@ export default function HomePage() {
     loadProjects();
   };
 
-  const handleImport = () => {
-    // Stub: ZIP import not yet implemented
+  const handleImport = async (file: File) => {
+    try {
+      const projectId = await importZipAsProject(file);
+      router.push(`/editor/${projectId}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao importar ZIP');
+    }
   };
 
   if (loading) {
@@ -208,7 +214,11 @@ export default function HomePage() {
         type="file"
         accept=".zip"
         className="hidden"
-        onChange={() => handleImport()}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImport(file);
+          e.target.value = '';
+        }}
       />
     </div>
   );

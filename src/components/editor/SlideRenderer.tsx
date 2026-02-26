@@ -924,36 +924,6 @@ function SlideRendererComponent({
 
   return (
     <>
-      {/* Layout mode toggle — above the slide */}
-      {isEditing && onSetSlideLayout && (
-        <div className="mb-2 flex justify-center" data-editor-control>
-          <div className="inline-flex h-8 items-center rounded-lg bg-muted p-0.5 text-muted-foreground">
-            <button
-              type="button"
-              onClick={() => { if (isFreeform) handleConvertToFlow('full-text'); }}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                !isFreeform ? "bg-background text-foreground shadow-sm" : "hover:text-foreground/80"
-              )}
-            >
-              <LayoutGrid className="size-3" />
-              Layout
-            </button>
-            <button
-              type="button"
-              onClick={() => { if (!isFreeform) handleConvertToFreeform(); }}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                isFreeform ? "bg-background text-foreground shadow-sm" : "hover:text-foreground/80"
-              )}
-            >
-              <Move className="size-3" />
-              Freeform
-            </button>
-          </div>
-        </div>
-      )}
-
       <div
         className="slide-wrapper"
         style={{
@@ -961,6 +931,35 @@ function SlideRendererComponent({
           flexShrink: 0,
         }}
       >
+        {/* Layout mode pill — floating above slide */}
+        {isEditing && onSetSlideLayout && (
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 -translate-y-full z-10" data-editor-control>
+            <div className="inline-flex items-center rounded-full bg-muted/80 p-0.5 backdrop-blur-sm border border-border/40">
+              <button
+                type="button"
+                onClick={() => { if (isFreeform) handleConvertToFlow('full-text'); }}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                  !isFreeform ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground/80"
+                )}
+              >
+                <LayoutGrid className="size-2.5" />
+                Layout
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (!isFreeform) handleConvertToFreeform(); }}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                  isFreeform ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground/80"
+                )}
+              >
+                <Move className="size-2.5" />
+                Free
+              </button>
+            </div>
+          </div>
+        )}
         <div
           ref={slideRef}
           data-slide-index={slideNumber - 1}

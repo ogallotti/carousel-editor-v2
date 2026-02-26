@@ -61,14 +61,16 @@ const RADIAL_PRESETS: { label: string; value: string }[] = [
 ];
 
 const OVERLAY_PRESETS = [
-  { label: '⬛ Escuro', fill: 'rgba(0,0,0,0.6)' },
-  { label: '⬛ Muito escuro', fill: 'rgba(0,0,0,0.85)' },
-  { label: '🔽 Gradiente ↓', fill: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%)' },
-  { label: '🔼 Gradiente ↑', fill: 'linear-gradient(to top, transparent 0%, rgba(0,0,0,0.7) 100%)' },
-  { label: '🔽 Gradiente suave', fill: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.5) 100%)' },
-  { label: '🟢 Verde escuro', fill: 'linear-gradient(to bottom, transparent 0%, rgba(0,40,0,0.7) 100%)' },
-  { label: '🔵 Azul escuro', fill: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,40,0.7) 100%)' },
-  { label: '⬜ Transparente', fill: 'transparent' },
+  { label: 'Escuro', fill: 'rgba(0,0,0,0.6)' },
+  { label: 'Muito escuro', fill: 'rgba(0,0,0,0.85)' },
+  { label: '↓ Fraco', fill: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 33%)' },
+  { label: '↓ Forte', fill: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 50%)' },
+  { label: '↑ Fraco', fill: 'linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 33%)' },
+  { label: '↑ Forte', fill: 'linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 50%)' },
+  { label: '↕ Fraco', fill: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 33%, transparent 67%, rgba(0,0,0,1) 100%)' },
+  { label: '↕ Forte', fill: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 50%, transparent 50%, rgba(0,0,0,1) 100%)' },
+  { label: 'Radial', fill: 'radial-gradient(circle, rgba(0,0,0,0.7) 0%, transparent 70%)' },
+  { label: 'Vinheta', fill: 'radial-gradient(circle, transparent 30%, rgba(0,0,0,0.7) 100%)' },
 ];
 
 // Checkerboard CSS for transparent visibility

@@ -197,15 +197,22 @@ Color or gradient overlay layer. Typically used over background images in freefo
 | `fill` | string | **yes** | — | CSS color or gradient string |
 | + all BaseElement props | | | | Especially x, y, w, h, zIndex |
 
-**Common fill values:**
+**REGRA: SEMPRE usar overlay quando o slide tiver `backgroundImage`.**
 
-```
-"rgba(0,0,0,0.6)"                                          — dark overlay
-"rgba(0,0,0,0.85)"                                         — very dark overlay
-"linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%)"  — fade to dark
-"linear-gradient(to top, transparent 0%, rgba(0,0,0,0.7) 100%)"     — fade to dark (top)
-"transparent"                                               — no overlay
-```
+**Presets de overlay (10):**
+
+| Preset | CSS `fill` | Quando usar |
+|--------|-----------|------------|
+| Escuro | `rgba(0,0,0,0.6)` | Overlay uniforme, texto em qualquer posição |
+| Muito escuro | `rgba(0,0,0,0.85)` | Imagem serve só de textura, texto domina |
+| ↓ Fraco | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 33%)` | Texto no topo, imagem limpa embaixo |
+| ↓ Forte | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 50%)` | Texto no topo com mais conteúdo |
+| ↑ Fraco | `linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 33%)` | Texto na base (capa, CTA) |
+| ↑ Forte | `linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 50%)` | Texto na base com mais conteúdo |
+| ↕ Fraco | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 33%, transparent 67%, rgba(0,0,0,1) 100%)` | Tag topo + texto base |
+| ↕ Forte | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 50%, transparent 50%, rgba(0,0,0,1) 100%)` | Tag topo + texto base, mais cobertura |
+| Radial | `radial-gradient(circle, rgba(0,0,0,0.7) 0%, transparent 70%)` | Texto centralizado |
+| Vinheta | `radial-gradient(circle, transparent 30%, rgba(0,0,0,0.7) 100%)` | Foco na imagem, escurece bordas |
 
 **Freeform usage pattern (full-canvas overlay):**
 ```json

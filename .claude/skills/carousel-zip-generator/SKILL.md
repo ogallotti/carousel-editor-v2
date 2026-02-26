@@ -402,15 +402,24 @@ Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`**
 - **Slide de capa (primeiro)**: texto na base (`y: 1040+`), overlay fade-to-top
 - **Slide de CTA (último)**: texto na base, overlay fade-to-top
 
-**Overlays recomendados:**
+**REGRA: SEMPRE usar overlay quando o slide tiver `backgroundImage`.** Escolher o preset com base na posição do texto.
 
-| Padrão | Quando usar |
-|--------|------------|
-| `linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.3) 100%)` | Texto na base (capa, CTA) |
-| `linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)` | Tag no topo + texto na base (maioria dos slides) |
-| `linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 100%)` | Só texto na base, imagem limpa no topo |
+**Overlays disponíveis (10 presets):**
 
-**IMPORTANTE**: Não usar `image-top`, `image-bottom` ou `image-full` quando a imagem deve ser o fundo do slide. Esses layouts colocam a imagem como elemento separado, não como background. Para visual editorial cinematográfico, **sempre usar `freeform` + `backgroundImage`**.
+| Preset | CSS `fill` | Quando usar |
+|--------|-----------|------------|
+| Escuro | `rgba(0,0,0,0.6)` | Overlay uniforme, texto em qualquer posição |
+| Muito escuro | `rgba(0,0,0,0.85)` | Imagem serve só de textura, texto precisa dominar |
+| ↓ Fraco | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 33%)` | Texto no topo, imagem limpa embaixo |
+| ↓ Forte | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 50%)` | Texto no topo com mais conteúdo |
+| ↑ Fraco | `linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 33%)` | Texto na base (capa, CTA), imagem limpa em cima |
+| ↑ Forte | `linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 50%)` | Texto na base com mais conteúdo |
+| ↕ Fraco | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 33%, transparent 67%, rgba(0,0,0,1) 100%)` | Tag no topo + texto na base, imagem visível no meio |
+| ↕ Forte | `linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 50%, transparent 50%, rgba(0,0,0,1) 100%)` | Tag no topo + texto na base com mais conteúdo |
+| Radial | `radial-gradient(circle, rgba(0,0,0,0.7) 0%, transparent 70%)` | Texto centralizado, destaque no centro |
+| Vinheta | `radial-gradient(circle, transparent 30%, rgba(0,0,0,0.7) 100%)` | Foco na imagem central, escurece bordas |
+
+**IMPORTANTE**: Não usar `image-top`, `image-bottom` ou `image-full` quando a imagem deve ser o fundo do slide. Esses layouts colocam a imagem como elemento separado, não como background. Para visual editorial cinematográfico, **sempre usar `freeform` + `backgroundImage` + overlay**.
 
 **12 tipos de elementos:**
 

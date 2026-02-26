@@ -157,6 +157,9 @@ function EditorInner({
         isDirty={state.isDirty}
         isSaving={isSaving}
         footerText={state.carousel.footer.text}
+        footerStyle={state.carousel.footer.style}
+        handle={state.carousel.header.handle}
+        showCounter={state.carousel.header.showCounter}
         isPreviewMode={state.isPreviewMode}
         viewMode={state.viewMode}
         zoom={state.zoom}
@@ -169,6 +172,9 @@ function EditorInner({
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onSetFooter={actions.setFooter}
+        onSetHandle={actions.setHandle}
+        onSetFooterStyle={actions.setFooterStyle}
+        onSetShowCounter={actions.setShowCounter}
         onExportSlide={handleExportSlide}
         onExportAll={handleExportAll}
         onSaveNow={saveNow}

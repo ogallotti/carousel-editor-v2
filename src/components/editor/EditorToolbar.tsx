@@ -25,6 +25,9 @@ export interface EditorToolbarProps {
   isDirty: boolean;
   isSaving: boolean;
   footerText: string;
+  footerStyle: 'uppercase' | 'normal';
+  handle: string;
+  showCounter: boolean;
   isPreviewMode: boolean;
   viewMode: 'horizontal' | 'grid';
   zoom: number;
@@ -37,6 +40,9 @@ export interface EditorToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onSetFooter: (text: string) => void;
+  onSetHandle: (handle: string) => void;
+  onSetFooterStyle: (style: 'uppercase' | 'normal') => void;
+  onSetShowCounter: (show: boolean) => void;
   onExportSlide: () => void;
   onExportAll: () => void;
   onSaveNow: () => void;
@@ -48,6 +54,9 @@ export function EditorToolbar({
   isDirty,
   isSaving,
   footerText,
+  footerStyle,
+  handle,
+  showCounter,
   isPreviewMode,
   viewMode,
   zoom,
@@ -60,6 +69,9 @@ export function EditorToolbar({
   onZoomIn,
   onZoomOut,
   onSetFooter,
+  onSetHandle,
+  onSetFooterStyle,
+  onSetShowCounter,
   onExportSlide,
   onExportAll,
   onSaveNow,
@@ -72,6 +84,21 @@ export function EditorToolbar({
     },
     [onSetFooter]
   );
+
+  const handleHandleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onSetHandle(e.target.value);
+    },
+    [onSetHandle]
+  );
+
+  const handleToggleFooterStyle = useCallback(() => {
+    onSetFooterStyle(footerStyle === 'uppercase' ? 'normal' : 'uppercase');
+  }, [footerStyle, onSetFooterStyle]);
+
+  const handleToggleShowCounter = useCallback(() => {
+    onSetShowCounter(!showCounter);
+  }, [showCounter, onSetShowCounter]);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -102,7 +129,18 @@ export function EditorToolbar({
 
         <Separator orientation="vertical" className="mx-1 h-5" />
 
-        {/* Footer input */}
+        {/* Handle input */}
+        <div className="hidden items-center gap-1 md:flex">
+          <span className="text-xs text-muted-foreground">Handle:</span>
+          <Input
+            className="h-7 w-28 text-xs"
+            value={handle}
+            onChange={handleHandleChange}
+            placeholder="@usuario"
+          />
+        </div>
+
+        {/* Footer input + style toggle */}
         <div className="hidden items-center gap-1 md:flex">
           <span className="text-xs text-muted-foreground">Rodapé:</span>
           <Input
@@ -111,6 +149,36 @@ export function EditorToolbar({
             onChange={handleFooterChange}
             placeholder="MINHA MARCA"
           />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={footerStyle === 'uppercase' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 px-2 text-[10px] font-semibold"
+                onClick={handleToggleFooterStyle}
+              >
+                {footerStyle === 'uppercase' ? 'AA' : 'Aa'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{footerStyle === 'uppercase' ? 'Rodapé em maiúsculas' : 'Rodapé em capitalização normal'}</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Counter toggle */}
+        <div className="hidden items-center gap-1 md:flex">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={showCounter ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 px-2 text-[10px]"
+                onClick={handleToggleShowCounter}
+              >
+                {showCounter ? '1/5' : '—'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{showCounter ? 'Ocultar contador de slides' : 'Mostrar contador de slides'}</TooltipContent>
+          </Tooltip>
         </div>
 
         <Separator orientation="vertical" className="mx-1 hidden h-5 md:block" />

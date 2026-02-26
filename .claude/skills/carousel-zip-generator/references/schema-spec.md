@@ -128,7 +128,7 @@ Gradients are stored as CSS strings in the `background` field:
 | `colors` | ThemeColors | **yes** | — | All 13 color properties |
 | `typography` | ThemeTypography | **yes** | — | 5 typography categories |
 | `fontScale` | number | **yes** | `1` | Range: 0.7–1.3 |
-| `elementGap` | number | no | `24` | Range: 0–80px, gap between elements |
+| `elementGap` | number | no | — | Range: 0–80px. Opcional. O editor usa 24px como fallback em runtime quando undefined. O scaffold define 24 explicitamente. |
 
 ### ThemeColors (13 properties, all required)
 

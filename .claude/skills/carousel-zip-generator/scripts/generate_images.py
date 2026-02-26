@@ -292,8 +292,13 @@ def generate_from_prompt_pack(pack_path, model, aspect_ratio, quality, resolutio
     print(f"Resultado: {success_count}/{total_images} imagens geradas com sucesso")
     print(f"Diretorio: {output_dir}")
 
-    if success_count < total_images:
+    if success_count == 0:
+        print("ERRO: Nenhuma imagem gerada. Verifique a API key e conexao.", file=sys.stderr)
         sys.exit(1)
+    elif success_count < total_images:
+        failed = total_images - success_count
+        print(f"AVISO: {failed} imagem(ns) falharam. Regenerar manualmente as faltantes.", file=sys.stderr)
+        sys.exit(2)
 
 
 def main():

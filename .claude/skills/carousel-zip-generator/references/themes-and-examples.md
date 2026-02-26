@@ -274,39 +274,44 @@ Topic: "Destinos de Viagem" (requires image assets in ZIP)
   "slides": [
     {
       "id": "slide-1",
-      "layout": "image-full",
+      "layout": "freeform",
       "backgroundImage": "assets/cover-beach.jpg",
-      "backgroundPosition": "center",
       "elements": [
-        { "id": "ov01", "type": "overlay", "fill": "linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 100%)" },
-        { "id": "hd01", "type": "heading", "level": 1, "content": "Destinos Incríveis Para 2026", "textAlign": "center", "marginTop": 40 }
+        { "id": "ov01", "type": "overlay", "fill": "linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 50%)", "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1 },
+        { "id": "hd01", "type": "heading", "level": 1, "content": "Destinos Incríveis Para 2026", "x": 80, "y": 1040, "w": 920, "fontSize": 52, "zIndex": 2 },
+        { "id": "st01", "type": "subtitle", "content": "Os lugares que vão definir 2026.", "x": 80, "y": 1240, "w": 920, "fontSize": 28, "zIndex": 2 }
       ]
     },
     {
       "id": "slide-2",
-      "layout": "image-top",
+      "layout": "freeform",
+      "backgroundImage": "assets/santorini.jpg",
       "elements": [
-        { "id": "im02", "type": "image", "src": "assets/santorini.jpg", "variant": "area", "borderRadius": 16, "imageHeight": 550 },
-        { "id": "hd02", "type": "heading", "level": 2, "content": "Santorini, Grécia", "textAlign": "center" },
-        { "id": "pr02", "type": "paragraph", "content": "Pôr do sol mágico, vilas brancas e o mar Egeu. Um destino dos sonhos.", "textAlign": "center" }
+        { "id": "ov02", "type": "overlay", "fill": "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)", "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1 },
+        { "id": "tg02", "type": "tag", "content": "DESTINO 1", "x": 80, "y": 100, "w": 300, "zIndex": 2 },
+        { "id": "hd02", "type": "heading", "level": 2, "content": "Santorini, Grécia", "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2 },
+        { "id": "pr02", "type": "paragraph", "content": "Vilas brancas penduradas nas falésias, o mar Egeu como fundo permanente e aquele pôr do sol que justifica toda a viagem.", "x": 80, "y": 1100, "w": 920, "fontSize": 24, "zIndex": 2 }
       ]
     },
     {
       "id": "slide-3",
-      "layout": "image-top",
+      "layout": "freeform",
+      "backgroundImage": "assets/kyoto.jpg",
       "elements": [
-        { "id": "im03", "type": "image", "src": "assets/kyoto.jpg", "variant": "area", "borderRadius": 16, "imageHeight": 550 },
-        { "id": "hd03", "type": "heading", "level": 2, "content": "Kyoto, Japão", "textAlign": "center" },
-        { "id": "pr03", "type": "paragraph", "content": "Templos milenares, jardins zen e a beleza da cultura japonesa.", "textAlign": "center" }
+        { "id": "ov03", "type": "overlay", "fill": "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)", "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1 },
+        { "id": "tg03", "type": "tag", "content": "DESTINO 2", "x": 80, "y": 100, "w": 300, "zIndex": 2 },
+        { "id": "hd03", "type": "heading", "level": 2, "content": "Kyoto, Japão", "x": 80, "y": 170, "w": 920, "fontSize": 44, "zIndex": 2 },
+        { "id": "pr03", "type": "paragraph", "content": "Templos milenares entre bambus, jardins zen que existem há 500 anos e uma cultura que transforma cada detalhe em ritual.", "x": 80, "y": 1100, "w": 920, "fontSize": 24, "zIndex": 2 }
       ]
     },
     {
       "id": "slide-4",
-      "layout": "cta",
+      "layout": "freeform",
+      "backgroundImage": "assets/bg-cta.jpg",
       "elements": [
-        { "id": "em04", "type": "emoji", "content": "✈️", "size": 96 },
-        { "id": "hd04", "type": "heading", "level": 1, "content": "Qual é o Seu Próximo Destino?", "textAlign": "center" },
-        { "id": "pr04", "type": "paragraph", "content": "Comente aqui embaixo e salve para planejar sua viagem!", "textAlign": "center" }
+        { "id": "ov04", "type": "overlay", "fill": "linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 50%)", "x": 0, "y": 0, "w": 1080, "h": 1440, "zIndex": 1 },
+        { "id": "hd04", "type": "heading", "level": 1, "content": "Qual é o Seu Próximo Destino?", "x": 80, "y": 1100, "w": 920, "fontSize": 44, "zIndex": 2 },
+        { "id": "pr04", "type": "paragraph", "content": "Comenta aqui embaixo e salva pra planejar sua viagem.", "x": 80, "y": 1260, "w": 920, "fontSize": 26, "zIndex": 2 }
       ]
     }
   ]
@@ -320,7 +325,8 @@ carousel.zip
 └── assets/
     ├── cover-beach.jpg
     ├── santorini.jpg
-    └── kyoto.jpg
+    ├── kyoto.jpg
+    └── bg-cta.jpg
 ```
 
 ---

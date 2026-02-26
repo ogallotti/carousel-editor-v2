@@ -48,6 +48,7 @@ Antes de qualquer slide, definir a fundação. Perguntar ou inferir do contexto:
 **Campos obrigatórios**: `topic`, `audience`, `big_idea`, `tone`, `visual_direction`
 
 Para spec completo e exemplos, ler `references/creative-brief-spec.md`.
+Para regras de escrita e anti-padrões de IA na copy, ler `references/copy-direction.md`.
 
 ### 1.2 Definir a Estrutura Narrativa
 
@@ -66,7 +67,8 @@ Planejar a sequência de slides seguindo uma progressão clara:
 **Regras editoriais (não negociar):**
 - 8 a 12 slides (sweet spot para Instagram)
 - Uma ideia central por slide
-- **Mínimo ~80% de slides freeform** (com backgroundImage + overlay + texto posicionado). Máximo ~20% texto puro (list, quote, highlight)
+- **Carrosséis com imagens**: mínimo ~80% de slides freeform (com backgroundImage + overlay + texto posicionado). Máximo ~20% texto puro (list, quote, highlight)
+- **Carrosséis 100% texto**: se o usuário optar por não usar imagens, todos os slides podem ser text-only (title-body, list, quote, highlight, etc.) com fundo sólido ou gradiente. A regra dos 80% freeform não se aplica nesse caso.
 - CTA final único (salvar **ou** comentar **ou** compartilhar — nunca 3 de uma vez)
 - Progressão lógica: dor → tensão → método → prova → CTA
 - Linguagem concreta, sem abstração vazia
@@ -82,6 +84,59 @@ python3 .claude/skills/carousel-zip-generator/scripts/build_prompt_pack.py \
 
 Gera prompts estruturados para título tipográfico + cena editorial + cenas narrativas.
 
+### 1.4 Imagens Fornecidas pelo Usuário
+
+O usuário pode fornecer imagens próprias (logo, mascote, fotos, assets da marca). Identificar o uso pretendido e tratar de acordo:
+
+**Caso A: Imagem como referência visual para geração (i2i)**
+
+O usuário quer que o estilo/elemento da imagem influencie as imagens geradas.
+
+Exemplo: *"Quero que os slides usem o mascote da minha empresa mascote.png"*
+
+Fluxo:
+1. Copiar o arquivo para `carousel-build/assets/` (será incluído no ZIP)
+2. Na geração de imagens (Fase 4), usar a imagem como `input_urls` no modo i2i para gerar o hero editorial, incorporando o elemento visual do usuário
+3. Depois usar o hero como referência para as cenas narrativas (mantendo consistência + elemento do usuário)
+
+```bash
+# Hero usando mascote como referência i2i
+python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
+  --prompt "Editorial cinematic photo featuring [DESCRIÇÃO DO MASCOTE]..." \
+  --model gpt-image/1.5-image-to-image \
+  --input-urls "carousel-build/assets/mascote.png" \
+  --output-dir carousel-build/assets/ \
+  --filename hero-editorial.jpg \
+  --quality high
+```
+
+**Caso B: Imagem como asset direto no slide**
+
+O usuário quer que a imagem apareça como está, sem transformação.
+
+Exemplo: *"Quero a logo da empresa no último slide logo.png"*
+
+Fluxo:
+1. Copiar o arquivo para `carousel-build/assets/` (ex: `assets/logo.png`)
+2. No schema.json, referenciar como elemento `image` no slide desejado:
+
+```json
+{
+  "id": "logo-cta",
+  "type": "image",
+  "src": "assets/logo.png",
+  "variant": "inline",
+  "x": 390, "y": 400, "w": 300,
+  "zIndex": 3
+}
+```
+
+**Caso C: Ambos**
+
+O usuário pode querer referência visual E assets diretos. Tratar cada imagem individualmente conforme o contexto.
+
+**Regra**: Sempre perguntar ao usuário como ele quer usar a imagem se não estiver claro. Não assumir.
+
 ## Fase 2: Aprovação da Copy
 
 **PARAR AQUI e apresentar a copy ao usuário antes de avançar.**
@@ -95,6 +150,12 @@ Depois de definir o brief e a estrutura narrativa, apresentar ao usuário:
    - Heading (título do slide)
    - Texto do corpo (parágrafo)
 3. **CTA final**
+4. **Verificação anti-IA** (conferir contra `references/copy-direction.md`):
+   - Sem anáforas, sem fórmula "X vs Y", sem revelações épicas pré-fabricadas
+   - Sem palavras proibidas (gamechanger, invisível, propósito, etc.)
+   - Frases com cadência humana (longa + curta), sem falso Hemingway
+   - Zero emojis no texto, zero travessões reflexivos
+   - Listas com substância narrativa, não jargão solto
 
 Formato sugerido para apresentação:
 
@@ -127,7 +188,7 @@ Slide 10 (CTA):
 
 **Travar antes de gerar qualquer imagem.** Tratar o carrossel como ensaio fotográfico único.
 
-### 2.1 Definir Paleta + Tema
+### 3.1 Definir Paleta + Tema
 
 Escolher um tema para o schema. Opções:
 
@@ -146,7 +207,7 @@ Escolher um tema para o schema. Opções:
 | Clean / Minimalista | Light + âmbar | `#f59e0b` |
 | Natural / Wellness | Light + verde | `#22c55e` |
 
-### 2.2 Definir Tipografia
+### 3.2 Definir Tipografia
 
 Escolher fontes entre as 12 disponíveis:
 
@@ -163,7 +224,7 @@ Escolher fontes entre as 12 disponíveis:
 
 Pairings recomendados: heading serifada + body sans-serif (ex: Playfair Display 700 + Inter 400).
 
-### 2.3 Definir Direção Visual Unificada
+### 3.3 Definir Direção Visual Unificada
 
 Descrever de forma concreta (não usar "bonito", "premium" sem detalhes):
 - **Paleta**: cores dominantes + acento
@@ -177,7 +238,7 @@ Descrever de forma concreta (não usar "bonito", "premium" sem detalhes):
 Para detalhes completos de prompts e checklist, ler `references/image-generation-playbook.md`.
 Para documentação da API de geração, ler `references/kie-api.md`.
 
-### 3.1 Serviço Recomendado: KIE (kie.ai)
+### 4.1 Serviço Recomendado: KIE (kie.ai)
 
 | Modelo | ID na API | Uso |
 |--------|-----------|-----|
@@ -187,7 +248,7 @@ Para documentação da API de geração, ler `references/kie-api.md`.
 
 **Pré-requisito**: Definir `export KIE_API_KEY="sua-chave"` (obter em [kie.ai/api-key](https://kie.ai/api-key)).
 
-### 3.2 Ordem de Geração (Hero-First Consistency)
+### 4.2 Ordem de Geração (Hero-First Consistency)
 
 1. **Título tipográfico** — text-to-image (PNG transparente, sem referência)
 2. **Hero editorial** — text-to-image quality `high` (**ÂNCORA VISUAL** — define paleta, luz e textura)
@@ -195,7 +256,7 @@ Para documentação da API de geração, ler `references/kie-api.md`.
 
 O script `generate_images.py` faz isso automaticamente no modo `--prompt-pack`. O hero é gerado primeiro, sua URL é capturada e passada como `input_urls` para todas as cenas seguintes via `gpt-image/1.5-image-to-image`.
 
-### 3.3 Padrões de Prompt
+### 4.3 Padrões de Prompt
 
 **Título (tipografia isolada):**
 ```
@@ -213,14 +274,14 @@ Visual direction locked: [DIREÇÃO VISUAL COMPLETA].
 No text overlays, no logos, no watermark.
 ```
 
-### 3.4 Checklist por Imagem
+### 4.4 Checklist por Imagem
 
 - Mantém paleta e iluminação do conjunto?
 - Continua a narrativa do slide anterior?
 - Parece parte do mesmo ensaio fotográfico?
 - Está limpa para receber texto por cima?
 
-### 3.5 Gerar via Script
+### 4.5 Gerar via Script
 
 **Prompt pack com consistência automática (recomendado):**
 ```bash
@@ -269,7 +330,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --filename scene-04.jpg
 ```
 
-### 3.6 Estrutura de Assets
+### 4.6 Estrutura de Assets
 
 ```
 assets/
@@ -284,7 +345,7 @@ assets/
 
 ## Fase 5: Montagem (Schema JSON + ZIP)
 
-### 4.1 Gerar Scaffold
+### 5.1 Gerar Scaffold
 
 Para gerar rapidamente um esqueleto do carrossel:
 
@@ -299,7 +360,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/scaffold_carousel.py \
 
 Depois preencher o copy e os caminhos das imagens manualmente.
 
-### 4.2 Ou Construir o JSON Diretamente
+### 5.2 Ou Construir o JSON Diretamente
 
 Construir o `schema.json` seguindo a CarouselSchema v1. Estrutura mínima:
 
@@ -323,7 +384,7 @@ Construir o `schema.json` seguindo a CarouselSchema v1. Estrutura mínima:
 
 Para spec completo com todos os campos, ler `references/schema-spec.md`.
 
-### 4.3 Montar os Slides
+### 5.3 Montar os Slides
 
 Cada slide:
 
@@ -419,6 +480,8 @@ Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`**
 | Radial | `radial-gradient(circle, rgba(0,0,0,0.7) 0%, transparent 70%)` | Texto centralizado, destaque no centro |
 | Vinheta | `radial-gradient(circle, transparent 30%, rgba(0,0,0,0.7) 100%)` | Foco na imagem central, escurece bordas |
 
+**Gradientes customizados**: Além dos 10 presets, o campo `fill` aceita qualquer CSS gradient válido. Usar gradientes customizados quando os presets não atendem ao layout específico de texto do slide.
+
 **IMPORTANTE**: Não usar `image-top`, `image-bottom` ou `image-full` quando a imagem deve ser o fundo do slide. Esses layouts colocam a imagem como elemento separado, não como background. Para visual editorial cinematográfico, **sempre usar `freeform` + `backgroundImage` + overlay**.
 
 **12 tipos de elementos:**
@@ -440,7 +503,7 @@ Para carrosséis com imagens, **TODOS os slides com foto devem usar `freeform`**
 
 Para spec completo de cada elemento, ler `references/elements.md`.
 
-### 4.4 Regras do Schema
+### 5.4 Regras do Schema
 
 - **Canvas**: Sempre 1080x1440px
 - **IDs**: Strings únicas (alfanumérico, 12 chars)
@@ -450,13 +513,13 @@ Para spec completo de cada elemento, ler `references/elements.md`.
 - **Texto em PT-BR**: Todo texto visível ao usuário em português brasileiro (salvo instrução contrária)
 - **Inline HTML**: `<b>`, `<i>`, `<u>`, `<span style="color:...">` — proibido `<div>`, `<p>`, `<h1-h6>`, `<script>`
 
-### 4.5 Validar
+### 5.5 Validar
 
 ```bash
 python3 .claude/skills/carousel-zip-generator/scripts/validate_carousel.py carousel-build/schema.json
 ```
 
-### 4.6 Empacotar ZIP
+### 5.6 Empacotar ZIP
 
 ```bash
 python3 .claude/skills/carousel-zip-generator/scripts/generate-carousel.py \
@@ -470,7 +533,7 @@ Ou manualmente:
 cd carousel-build && zip -r ../carousel.zip schema.json assets/
 ```
 
-### 4.7 Entregar
+### 5.7 Entregar
 
 Informar ao usuário:
 - Localização do ZIP
@@ -482,12 +545,13 @@ Informar ao usuário:
 1. **Travar direção visual antes de gerar qualquer imagem**
 2. **Consistência**: paleta, luz e textura iguais em todas as cenas
 3. **Título tipográfico separado** (fundo transparente, nunca dentro da cena)
-4. **Mínimo ~80% slides freeform** (máximo ~20% sem imagem)
+4. **Se tem imagens, mínimo ~80% slides freeform** (não se aplica a carrosséis 100% texto)
 5. **Progressão narrativa clara**: dor → tensão → método → prova → CTA
 6. **CTA único** (uma ação, sem múltiplos pedidos)
 7. **Uma ideia por slide** — se precisou de "e também", dividir em 2 slides
 8. **Hook forte no slide 1** — se não para o scroll, o resto não importa
 9. **Linguagem concreta** — sem "potencialize seus resultados", com "aumente 30% em 2 semanas"
+10. **Copy anti-IA** — seguir `references/copy-direction.md` rigorosamente. Sem clichês, sem buzzwords, sem padrões repetitivos de escrita genérica.
 
 ## Comandos Essenciais
 
@@ -520,3 +584,4 @@ python3 scripts/generate-carousel.py --schema schema.json --output carousel.zip 
 | `references/schema-spec.md` | Campos do schema, tipos de dados, defaults |
 | `references/elements.md` | Properties de cada tipo de elemento |
 | `references/themes-and-examples.md` | Escolhendo tema, precisa de exemplos completos |
+| `references/copy-direction.md` | Escrevendo copy, regras anti-IA e anti-clichê |

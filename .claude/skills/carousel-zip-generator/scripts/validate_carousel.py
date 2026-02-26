@@ -38,7 +38,9 @@ VALID_FONTS = {
     "JetBrains Mono", "Fira Code",
 }
 
-FORBIDDEN_HTML = re.compile(r"<(div|p|h[1-6]|style|script|link)\b", re.IGNORECASE)
+FORBIDDEN_HTML = re.compile(r"<(div|p|h[1-6]|style|script|link|br|img|table|form|input)\b", re.IGNORECASE)
+
+TEXT_ELEMENT_TYPES = {"tag", "heading", "paragraph", "subtitle", "quote", "highlight", "list-item"}
 
 
 def validate(data):
@@ -156,6 +158,14 @@ def validate(data):
             if isinstance(content, str) and FORBIDDEN_HTML.search(content):
                 errors.append(f"Slide {i} ({el_id}): HTML proibido em content (div/p/h1-h6/style/script)")
 
+            # Required content check for text elements
+            if el_type in TEXT_ELEMENT_TYPES and not el.get("content"):
+                errors.append(f"Slide {i} ({el_id}): {el_type} sem 'content' (obrigatorio)")
+
+            # Overlay requires fill
+            if el_type == "overlay" and not el.get("fill"):
+                errors.append(f"Slide {i} ({el_id}): overlay sem 'fill' (obrigatorio)")
+
             # Type-specific checks
             if el_type == "heading" and el.get("level") not in (1, 2, 3):
                 errors.append(f"Slide {i} ({el_id}): heading.level deve ser 1, 2 ou 3")
@@ -170,6 +180,16 @@ def validate(data):
             if el_type == "spacer" and not isinstance(el.get("height"), (int, float)):
                 errors.append(f"Slide {i} ({el_id}): spacer sem height")
 
+            # Freeform positioning type checks
+            if layout == "freeform" and el_type not in ("spacer", "divider"):
+                for coord in ("x", "y", "w"):
+                    val = el.get(coord)
+                    if val is not None and not isinstance(val, (int, float)):
+                        errors.append(f"Slide {i} ({el_id}): freeform '{coord}' deve ser numero, recebeu {type(val).__name__}")
+                zi = el.get("zIndex")
+                if zi is not None and not isinstance(zi, (int, float)):
+                    errors.append(f"Slide {i} ({el_id}): freeform 'zIndex' deve ser numero")
+
             # Font family check
             ff = el.get("fontFamily")
             if ff and ff not in VALID_FONTS:
@@ -179,11 +199,15 @@ def validate(data):
         if not has_image and not has_bg_image and layout not in ("cover", "cta"):
             text_only_count += 1
 
-    if slides:
+    has_any_images = any(
+        s.get("backgroundImage") or any(e.get("type") == "image" for e in s.get("elements", []))
+        for s in slides
+    )
+    if slides and has_any_images:
         ratio = text_only_count / len(slides)
         if ratio > 0.2:
             warnings.append(
-                f"Slides so texto em excesso ({text_only_count}/{len(slides)} = {ratio:.0%}). Meta: ate ~20% (minimo 80% freeform)."
+                f"Slides so texto em excesso ({text_only_count}/{len(slides)} = {ratio:.0%}). Meta: ate ~20% quando ha imagens (minimo 80% freeform)."
             )
 
     return errors, warnings

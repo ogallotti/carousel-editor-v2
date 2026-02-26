@@ -86,7 +86,7 @@
 | Direto e confiante | Autoridade, sem rodeios | "Isso funciona. Ponto." |
 | Provocativo | Desafiar crença comum | "Tudo que te ensinaram está errado" |
 | Didático | Ensinar passo a passo | "Vou te mostrar exatamente como" |
-| Inspiracional | Motivar ação | "Você pode. E aqui está o mapa" |
+| Inspiracional | Motivar ação | "Em 6 meses, ela saiu de 200 para 12.000 seguidores. O método cabe num post." |
 | Storytelling | Narrativa pessoal | "Há 2 anos eu estava no zero..." |
 | Humor seco | Engajamento jovem | "Spoiler: não vai dar certo assim" |
 

@@ -23,7 +23,7 @@ Style: [bold/elegant/handwritten/minimal] matching [TONE].
 High contrast, sharp edges, production-ready PNG with alpha channel.
 ```
 
-**Onde usar**: Slide 1 (cover) como imagem de background ou elemento.
+**Onde usar**: Slide 1 (cover) como elemento sobreposto em um slide freeform.
 
 ### 2. Hero Editorial (Cena Principal)
 

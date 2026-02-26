@@ -54,84 +54,107 @@ def el(el_type, **kwargs):
     return base
 
 
+FREEFORM_TEMPLATES = [
+    ("PROBLEMA", "A dor que o publico sente", "Texto detalhado sobre o problema que o publico enfrenta."),
+    ("INSIGHT", "A descoberta que muda a perspectiva", "Texto explicando o insight com dados concretos."),
+    ("METODO", "Como aplicar na pratica", "Passos concretos de execucao com exemplos reais."),
+    ("EXEMPLO", "Caso real com numeros", "Antes e depois mensuravel que sustenta a tese."),
+    ("PROVA", "Dados que sustentam a tese", "Resultado concreto e mensuravel em contexto real."),
+    ("VIRADA", "O que ninguem percebeu ainda", "Perspectiva que o publico nao esperava encontrar."),
+]
+
+TEXT_TEMPLATES = [
+    ("list", "SINAIS", "Como identificar em 30 segundos"),
+    ("quote", "VIRADA", "Frase que muda a perspectiva"),
+    ("highlight", "DADO CHAVE", "Insight em destaque"),
+]
+
+OVERLAY_FADE_TOP_BOTTOM = (
+    "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, "
+    "transparent 35%, transparent 55%, rgba(0,0,0,0.85) 100%)"
+)
+OVERLAY_FADE_TO_TOP = "linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 50%)"
+
+
 def build_slides(title, slides_total):
     slides = []
 
-    # Slide 1: Cover
+    # Slide 1: Cover (freeform + backgroundImage)
     slides.append({
         "id": uid(),
-        "layout": "cover",
+        "layout": "freeform",
+        "backgroundImage": "assets/hero-editorial.jpg",
         "elements": [
-            el("emoji", content="⚡", size=96),
-            el("heading", level=1, content=title, textAlign="center"),
-            el("subtitle", content="Subtitulo — promessa de transformacao", textAlign="center"),
+            el("overlay", fill=OVERLAY_FADE_TO_TOP, x=0, y=0, w=1080, h=1440, zIndex=1),
+            el("heading", level=1, content=title, x=80, y=1040, w=920, fontSize=52, zIndex=2),
+            el("subtitle", content="Subtitulo com promessa concreta", x=80, y=1240, w=920, fontSize=28, zIndex=2),
         ],
     })
 
-    body_templates = [
-        ("title-body", "PROBLEMA", "A dor que o publico sente"),
-        ("image-top", "CENA", "Visual que prova o ponto"),
-        ("list", "SINAIS", "Como identificar em 30 segundos"),
-        ("image-bottom", "EXEMPLO", "Caso real com antes e depois"),
-        ("quote", "VIRADA", "Frase que muda a perspectiva"),
-        ("highlight", "METODO", "O framework de execucao"),
-        ("title-body", "PROVA", "Dados ou resultado concreto"),
-    ]
+    # Body slides: ~80% freeform, ~20% text-only
+    body_count = slides_total - 2  # minus cover and CTA
+    text_only_interval = 5  # every 5th body slide is text-only
+    scene_idx = 2
+    freeform_cursor = 0
+    text_cursor = 0
 
-    idx = 2
-    cursor = 0
-    while idx < slides_total:
-        layout, tag, heading = body_templates[cursor % len(body_templates)]
-        elements = [
-            el("tag", content=tag, textAlign="center"),
-            el("heading", level=2, content=heading, textAlign="center"),
-            el("paragraph", content="Texto enxuto, especifico e com exemplos concretos.", textAlign="center"),
-        ]
+    for i in range(body_count):
+        is_text_only = ((i + 1) % text_only_interval == 0)
 
-        if layout in ("image-top", "image-bottom"):
-            elements.append(el(
-                "image",
-                src="assets/scene-%02d.jpg" % idx,
-                variant="area",
-                alt="Cena %02d" % idx,
-                borderRadius=16,
-                imageHeight=550,
-            ))
+        if is_text_only:
+            layout, tag, heading = TEXT_TEMPLATES[text_cursor % len(TEXT_TEMPLATES)]
+            elements = [
+                el("tag", content=tag, textAlign="center"),
+                el("heading", level=2, content=heading, textAlign="center"),
+            ]
 
-        elif layout == "list":
-            elements.extend([
-                el("list-item", icon="✅", content="Primeiro item da lista", textAlign="left"),
-                el("list-item", icon="✅", content="Segundo item da lista", textAlign="left"),
-                el("list-item", icon="✅", content="Terceiro item da lista", textAlign="left"),
-            ])
+            if layout == "list":
+                elements.extend([
+                    el("list-item", icon="01", content="Primeiro item da lista com contexto narrativo", textAlign="left"),
+                    el("list-item", icon="02", content="Segundo item da lista com contexto narrativo", textAlign="left"),
+                    el("list-item", icon="03", content="Terceiro item da lista com contexto narrativo", textAlign="left"),
+                ])
+            elif layout == "quote":
+                elements.append(el(
+                    "quote",
+                    content="Frase memoravel que pode virar print.",
+                    attribution="Fonte ou contexto da citacao",
+                    textAlign="center",
+                ))
+            elif layout == "highlight":
+                elements.append(el(
+                    "highlight",
+                    content="Dado ou insight em destaque que sustenta a tese central.",
+                    textAlign="center",
+                ))
 
-        elif layout == "quote":
-            elements.append(el(
-                "quote",
-                content="Frase memoravel que pode virar print.",
-                attribution="Autoridade ou experiencia pratica",
-                textAlign="center",
-            ))
+            slides.append({"id": uid(), "layout": layout, "elements": elements})
+            text_cursor += 1
+        else:
+            tag, heading, body = FREEFORM_TEMPLATES[freeform_cursor % len(FREEFORM_TEMPLATES)]
+            slides.append({
+                "id": uid(),
+                "layout": "freeform",
+                "backgroundImage": "assets/scene-%02d.jpg" % scene_idx,
+                "elements": [
+                    el("overlay", fill=OVERLAY_FADE_TOP_BOTTOM, x=0, y=0, w=1080, h=1440, zIndex=1),
+                    el("tag", content=tag, x=80, y=100, w=300, zIndex=2),
+                    el("heading", level=2, content=heading, x=80, y=170, w=920, fontSize=44, zIndex=2),
+                    el("paragraph", content=body, x=80, y=1100, w=920, fontSize=24, zIndex=2),
+                ],
+            })
+            scene_idx += 1
+            freeform_cursor += 1
 
-        elif layout == "highlight":
-            elements.append(el(
-                "highlight",
-                content="Dado ou insight em destaque que sustenta a tese.",
-                textAlign="center",
-            ))
-
-        slides.append({"id": uid(), "layout": layout, "elements": elements})
-        idx += 1
-        cursor += 1
-
-    # Last slide: CTA
+    # Last slide: CTA (freeform + backgroundImage)
     slides.append({
         "id": uid(),
-        "layout": "cta",
+        "layout": "freeform",
+        "backgroundImage": "assets/bg-cta.jpg",
         "elements": [
-            el("emoji", content="💾", size=96),
-            el("heading", level=1, content="Salva e manda pra quem precisa.", textAlign="center"),
-            el("paragraph", content="CTA unico, claro e direto.", textAlign="center"),
+            el("overlay", fill=OVERLAY_FADE_TO_TOP, x=0, y=0, w=1080, h=1440, zIndex=1),
+            el("heading", level=1, content="Salva este post.", x=80, y=1100, w=920, fontSize=48, zIndex=2),
+            el("paragraph", content="CTA unico, claro e direto.", x=80, y=1260, w=920, fontSize=26, zIndex=2),
         ],
     })
 

@@ -11,6 +11,16 @@ Ideia → Estratégia → Direção Visual → Imagens → Schema JSON → ZIP i
 
 Este skill executa o pipeline completo para criar carrosséis profissionais para Instagram. O output final é um arquivo `.zip` contendo `schema.json` + `assets/` importável pelo Carousel Editor V2.
 
+### Antes de Começar
+
+1. **Ler preferências do usuário**: Verificar se o auto-memory (`~/.claude/projects/*/memory/`) contém preferências salvas (handle, marca, tom de voz, estilo de copy, etc.). Usar essas preferências como defaults sem perguntar novamente.
+2. **Criar pasta de trabalho**: No diretório atual, criar uma pasta dedicada para este carrossel:
+   ```bash
+   mkdir -p carousel-{slug}/assets
+   ```
+   Onde `{slug}` é o título do carrossel em kebab-case (ex: `carousel-5-erros-de-copy`). Todos os assets, schema.json e o ZIP final ficam dentro dessa pasta.
+3. **Ao finalizar a sessão**: Salvar no auto-memory as preferências do usuário que foram reveladas durante o trabalho (handle, marca, tom preferido, ajustes recorrentes de copy, direção visual favorita). Isso evita repetir as mesmas perguntas em sessões futuras.
+
 **O pipeline tem 5 fases:**
 
 ```
@@ -95,7 +105,7 @@ O usuário quer que o estilo/elemento da imagem influencie as imagens geradas.
 Exemplo: *"Quero que os slides usem o mascote da minha empresa mascote.png"*
 
 Fluxo:
-1. Copiar o arquivo para `carousel-build/assets/` (será incluído no ZIP)
+1. Copiar o arquivo para `carousel-{slug}/assets/` (será incluído no ZIP)
 2. Na geração de imagens (Fase 4), usar a imagem como `input_urls` no modo i2i para gerar o hero editorial, incorporando o elemento visual do usuário
 3. Depois usar o hero como referência para as cenas narrativas (mantendo consistência + elemento do usuário)
 
@@ -104,8 +114,8 @@ Fluxo:
 python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --prompt "Editorial cinematic photo featuring [DESCRIÇÃO DO MASCOTE]..." \
   --model gpt-image/1.5-image-to-image \
-  --input-urls "carousel-build/assets/mascote.png" \
-  --output-dir carousel-build/assets/ \
+  --input-urls "carousel-{slug}/assets/mascote.png" \
+  --output-dir carousel-{slug}/assets/ \
   --filename hero-editorial.jpg \
   --quality high
 ```
@@ -117,7 +127,7 @@ O usuário quer que a imagem apareça como está, sem transformação.
 Exemplo: *"Quero a logo da empresa no último slide logo.png"*
 
 Fluxo:
-1. Copiar o arquivo para `carousel-build/assets/` (ex: `assets/logo.png`)
+1. Copiar o arquivo para `carousel-{slug}/assets/` (ex: `assets/logo.png`)
 2. No schema.json, referenciar como elemento `image` no slide desejado:
 
 ```json
@@ -141,6 +151,23 @@ O usuário pode querer referência visual E assets diretos. Tratar cada imagem i
 
 **PARAR AQUI e apresentar a copy ao usuário antes de avançar.**
 
+### 2.1 Autovalidação Anti-IA (OBRIGATÓRIA antes de mostrar ao usuário)
+
+Antes de apresentar a copy, reler `references/copy-direction.md` e revisar cada slide contra estas regras. Se encontrar violações, corrigir ANTES de mostrar:
+
+- **Travessões**: Buscar qualquer uso de em-dash (—) ou en-dash (–) no meio de frases. Reformular com vírgula ou dividir em duas frases.
+- **Anáforas**: Verificar se 3+ slides seguidos começam com a mesma palavra/estrutura. Variar.
+- **Fórmula "X vs Y"**: Eliminar qualquer "Não é X, é Y" ou "É mais do que X, é Y".
+- **Revelações épicas**: Cortar "E aqui está a verdade", "Isso muda tudo", "O que ninguém te conta".
+- **Palavras proibidas**: Conferir a tabela completa em `copy-direction.md` (gamechanger, invisível, propósito, etc.).
+- **Falso Hemingway**: Identificar sequências de frases curtas metralhadas. Inserir fluidez com frases longas.
+- **Adjetivos**: Máximo 1 por frase. Substituir adjetivos por dados concretos.
+- **Emojis no texto**: Zero. Nenhum emoji em heading, paragraph, subtitle, quote.
+
+**Esta validação não é opcional.** Se na segunda iteração (após ajustes do usuário) a copy ainda tiver violações, corrigir novamente antes de mostrar.
+
+### 2.2 Apresentar a Copy
+
 Depois de definir o brief e a estrutura narrativa, apresentar ao usuário:
 
 1. **Título do carrossel**
@@ -150,37 +177,35 @@ Depois de definir o brief e a estrutura narrativa, apresentar ao usuário:
    - Heading (título do slide)
    - Texto do corpo (parágrafo)
 3. **CTA final**
-4. **Verificação anti-IA** (conferir contra `references/copy-direction.md`):
-   - Sem anáforas, sem fórmula "X vs Y", sem revelações épicas pré-fabricadas
-   - Sem palavras proibidas (gamechanger, invisível, propósito, etc.)
-   - Frases com cadência humana (longa + curta), sem falso Hemingway
-   - Zero emojis no texto, zero travessões reflexivos
-   - Listas com substância narrativa, não jargão solto
 
 Formato sugerido para apresentação:
 
 ```
-📋 COPY DO CARROSSEL: "Título"
+COPY DO CARROSSEL: "Título"
 
 Slide 1 (HOOK): "Frase de impacto"
-→ "Subtítulo ou complemento"
+  "Subtítulo ou complemento"
 
 Slide 2 (PROBLEMA): TAG: CONTEXTO
-→ "Heading do slide"
-→ "Texto do corpo explicando a dor..."
+  "Heading do slide"
+  "Texto do corpo explicando a dor..."
 
 Slide 3 (MÉTODO): TAG: COMO FUNCIONA
-→ "Heading do slide"
-→ "Texto do corpo com o método..."
+  "Heading do slide"
+  "Texto do corpo com o método..."
 
 [...]
 
 Slide 10 (CTA):
-→ "Frase de fechamento"
-→ "Call-to-action"
+  "Frase de fechamento"
+  "Call-to-action"
 ```
 
-**Aguardar aprovação explícita do usuário.** Ajustar o que for pedido. Só avançar para Fase 3 (Direção Visual) após "ok", "aprovado", "pode seguir" ou equivalente.
+### 2.3 Aguardar Feedback Aberto
+
+**NUNCA usar a ferramenta AskUserQuestion com opções pré-definidas para aprovar a copy.** O usuário precisa de espaço para dar feedback aberto, sugerir mudanças pontuais, reescrever frases, mudar o tom. Apresentar a copy como texto normal e aguardar a resposta livre do usuário.
+
+Só avançar para Fase 3 (Direção Visual) após "ok", "aprovado", "pode seguir" ou equivalente. Se o usuário pedir ajustes, aplicar e rodar a autovalidação anti-IA novamente antes de reapresentar.
 
 ---
 
@@ -288,7 +313,7 @@ No text overlays, no logos, no watermark.
 # Hero é gerado primeiro via t2i, depois cenas usam hero como referência via i2i
 python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --prompt-pack prompt-pack.json \
-  --output-dir carousel-build/assets/ \
+  --output-dir carousel-{slug}/assets/ \
   --quality high
 ```
 
@@ -296,7 +321,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
 ```bash
 python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --prompt-pack prompt-pack.json \
-  --output-dir carousel-build/assets/ \
+  --output-dir carousel-{slug}/assets/ \
   --no-ref
 ```
 
@@ -304,7 +329,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
 ```bash
 python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --prompt "Editorial cinematic photo..." \
-  --output-dir carousel-build/assets/ \
+  --output-dir carousel-{slug}/assets/ \
   --filename hero-editorial.jpg \
   --quality high
 ```
@@ -316,7 +341,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --model nano-banana-pro \
   --aspect-ratio 4:5 \
   --resolution 2K \
-  --output-dir carousel-build/assets/ \
+  --output-dir carousel-{slug}/assets/ \
   --filename scene-03.jpg
 ```
 
@@ -326,7 +351,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/generate_images.py \
   --prompt "Same scene, different angle..." \
   --model gpt-image/1.5-image-to-image \
   --input-urls "https://url-da-hero.jpg" \
-  --output-dir carousel-build/assets/ \
+  --output-dir carousel-{slug}/assets/ \
   --filename scene-04.jpg
 ```
 
@@ -355,7 +380,7 @@ python3 .claude/skills/carousel-zip-generator/scripts/scaffold_carousel.py \
   --handle "@seuhandle" \
   --brand "SUA MARCA" \
   --slides 10 \
-  --output carousel-build/schema.json
+  --output carousel-{slug}/schema.json
 ```
 
 Depois preencher o copy e os caminhos das imagens manualmente.
@@ -516,29 +541,43 @@ Para spec completo de cada elemento, ler `references/elements.md`.
 ### 5.5 Validar
 
 ```bash
-python3 .claude/skills/carousel-zip-generator/scripts/validate_carousel.py carousel-build/schema.json
+python3 .claude/skills/carousel-zip-generator/scripts/validate_carousel.py carousel-{slug}/schema.json
 ```
 
 ### 5.6 Empacotar ZIP
 
 ```bash
 python3 .claude/skills/carousel-zip-generator/scripts/generate-carousel.py \
-  --schema carousel-build/schema.json \
+  --schema carousel-{slug}/schema.json \
   --output carousel.zip \
-  --assets carousel-build
+  --assets carousel-{slug}
 ```
 
 Ou manualmente:
 ```bash
-cd carousel-build && zip -r ../carousel.zip schema.json assets/
+cd carousel-{slug} && zip -r ../carousel.zip schema.json assets/
 ```
 
 ### 5.7 Entregar
 
 Informar ao usuário:
-- Localização do ZIP
+- Localização do ZIP (dentro da pasta `carousel-{slug}/`)
 - Como importar: abrir o editor → clicar "Importar ZIP" na galeria
 - Tudo pode ser editado visualmente após a importação (cores, fontes, textos, layout)
+
+### 5.8 Salvar Preferências do Usuário
+
+Ao finalizar, atualizar o auto-memory com as preferências reveladas durante a sessão. Salvar no arquivo de memória do projeto (ou criar se não existir):
+
+Dados a persistir (quando revelados):
+- **handle**: @username do Instagram
+- **brand**: nome da marca para o footer
+- **tom de voz preferido**: ex: "direto e confiante, sem guru"
+- **estilo de copy**: ajustes recorrentes que o usuário pediu (ex: "prefere frases mais curtas", "gosta de dados numéricos", "não usar perguntas retóricas")
+- **direção visual padrão**: paleta, tipografia, atmosfera que o usuário escolheu
+- **formato preferido**: ex: "sempre 10 slides", "prefere 100% freeform"
+
+Isso evita repetir as mesmas perguntas e calibrações em sessões futuras.
 
 ## Regras de Qualidade (Não Negociar)
 
@@ -560,7 +599,7 @@ Informar ao usuário:
 python3 scripts/build_prompt_pack.py --brief brief.json --output prompt-pack.json --slides 10
 
 # Gerar imagens via KIE API (requer KIE_API_KEY)
-python3 scripts/generate_images.py --prompt-pack prompt-pack.json --output-dir carousel-build/assets/ --quality high
+python3 scripts/generate_images.py --prompt-pack prompt-pack.json --output-dir carousel-{slug}/assets/ --quality high
 
 # Gerar scaffold do carrossel (preencher copy depois)
 python3 scripts/scaffold_carousel.py --title "Título" --handle "@user" --brand "MARCA" --slides 10 --output schema.json

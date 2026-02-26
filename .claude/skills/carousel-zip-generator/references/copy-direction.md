@@ -135,3 +135,9 @@ Alternar frases longas e curtas. Uma frase longa, descritiva e com respiração,
 ### Referência de Voz
 
 Escrever como redator editorial afiado, não como palestrante motivacional. Pensar em texto de revista de negócios (Exame, Bloomberg), não post de coach. A copy vende pela clareza do argumento, não pelo volume da emoção.
+
+---
+
+## Regra de Aplicação
+
+Estas regras se aplicam a TODA iteração de copy, incluindo revisões. É comum que ao reescrever trechos após feedback do usuário, os vícios de IA voltem nos trechos novos. Toda vez que a copy for modificada, reler este documento e validar o texto inteiro novamente antes de apresentar ao usuário. Não existe "quase bom o suficiente" para estas regras.

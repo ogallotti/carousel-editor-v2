@@ -230,14 +230,11 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       slide.layout = action.payload.layout;
       slide.elements = slide.elements.map((el): SlideElement => {
         if (toFreeform) {
-          // Apply calculated positions from DOM (or defaults for overlays)
           const updates = action.payload.elementUpdates?.[el.id];
           if (updates) return { ...el, ...updates } as SlideElement;
-          // Overlay fallback: full-slide
           if (el.type === 'overlay') return { ...el, x: 0, y: 0, w: 1080, h: 1440 };
           return el;
         } else {
-          // Freeform → Flow: strip freeform-specific props
           const cleaned = { ...el };
           delete cleaned.x;
           delete cleaned.y;
@@ -249,7 +246,12 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         }
       });
 
-      // Ensure overlays are always at the bottom of the stack (position 0)
+      // Reverse array to preserve visual list order across modes:
+      // Flow: index 0 = top of slide = top of list
+      // Freeform: index 0 = bottom z-layer = bottom of list (displayed reversed)
+      slide.elements.reverse();
+
+      // Ensure overlays are always at the bottom of the stack (index 0)
       const overlays = slide.elements.filter((el) => el.type === 'overlay');
       const nonOverlays = slide.elements.filter((el) => el.type !== 'overlay');
       slide.elements = [...overlays, ...nonOverlays];

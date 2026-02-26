@@ -249,6 +249,11 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         }
       });
 
+      // Ensure overlays are always at the bottom of the stack (position 0)
+      const overlays = slide.elements.filter((el) => el.type === 'overlay');
+      const nonOverlays = slide.elements.filter((el) => el.type !== 'overlay');
+      slide.elements = [...overlays, ...nonOverlays];
+
       slides[action.payload.slideIndex] = slide;
       return { ...s, carousel: { ...s.carousel, slides }, selectedElementId: null };
     }

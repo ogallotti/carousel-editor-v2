@@ -920,8 +920,36 @@ function SlideRendererComponent({
     );
   };
 
+  const isFreeform = slide.layout === 'freeform';
+
   return (
     <>
+      {/* Layout mode toggle — above the slide */}
+      {isEditing && onSetSlideLayout && (
+        <div className="flex items-center justify-center gap-2 mb-2" data-editor-control>
+          <span className={cn("text-[11px] font-medium transition-colors", !isFreeform ? "text-foreground" : "text-muted-foreground/50")}>
+            Layout
+          </span>
+          <button
+            type="button"
+            onClick={() => isFreeform ? handleConvertToFlow('full-text') : handleConvertToFreeform()}
+            className="relative flex items-center w-[52px] h-[26px] rounded-full border border-border/60 bg-muted/50 transition-colors hover:bg-muted/80 cursor-pointer"
+          >
+            {/* Track icons */}
+            <LayoutGrid className={cn("absolute left-1.5 size-3.5 transition-colors", !isFreeform ? "text-foreground" : "text-muted-foreground/40")} />
+            <Move className={cn("absolute right-1.5 size-3.5 transition-colors", isFreeform ? "text-foreground" : "text-muted-foreground/40")} />
+            {/* Thumb */}
+            <div className={cn(
+              "absolute top-[3px] size-[18px] rounded-full bg-foreground/90 shadow-sm transition-all duration-200",
+              isFreeform ? "left-[29px]" : "left-[3px]"
+            )} />
+          </button>
+          <span className={cn("text-[11px] font-medium transition-colors", isFreeform ? "text-foreground" : "text-muted-foreground/50")}>
+            Freeform
+          </span>
+        </div>
+      )}
+
       <div
         className="slide-wrapper"
         style={{
@@ -1007,40 +1035,6 @@ function SlideRendererComponent({
           )}
         </div>
 
-        {/* Layout toggle button — outside slide zoom, inside wrapper for correct positioning */}
-        {isEditing && onSetSlideLayout && (
-          <div
-            data-editor-control
-            style={{
-              position: 'absolute',
-              bottom: 8,
-              right: 8,
-              zIndex: 10,
-            }}
-          >
-            {slide.layout === 'freeform' ? (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleConvertToFlow('full-text'); }}
-                title="Converter para layout automático"
-                className="flex items-center gap-1.5 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] text-white/90 border border-white/15 backdrop-blur-sm cursor-pointer hover:bg-black/85 transition-colors"
-              >
-                <LayoutGrid className="size-3.5" />
-                Layout
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleConvertToFreeform(); }}
-                title="Converter para freeform"
-                className="flex items-center gap-1.5 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] text-white/90 border border-white/15 backdrop-blur-sm cursor-pointer hover:bg-black/85 transition-colors"
-              >
-                <Move className="size-3.5" />
-                Freeform
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Selection bubble toolbar — appears above text selection */}

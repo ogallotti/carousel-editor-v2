@@ -926,27 +926,31 @@ function SlideRendererComponent({
     <>
       {/* Layout mode toggle — above the slide */}
       {isEditing && onSetSlideLayout && (
-        <div className="flex items-center justify-center gap-2 mb-2" data-editor-control>
-          <span className={cn("text-[11px] font-medium transition-colors", !isFreeform ? "text-foreground" : "text-muted-foreground/50")}>
-            Layout
-          </span>
-          <button
-            type="button"
-            onClick={() => isFreeform ? handleConvertToFlow('full-text') : handleConvertToFreeform()}
-            className="relative flex items-center w-[52px] h-[26px] rounded-full border border-border/60 bg-muted/50 transition-colors hover:bg-muted/80 cursor-pointer"
-          >
-            {/* Track icons */}
-            <LayoutGrid className={cn("absolute left-1.5 size-3.5 transition-colors", !isFreeform ? "text-foreground" : "text-muted-foreground/40")} />
-            <Move className={cn("absolute right-1.5 size-3.5 transition-colors", isFreeform ? "text-foreground" : "text-muted-foreground/40")} />
-            {/* Thumb */}
-            <div className={cn(
-              "absolute top-[3px] size-[18px] rounded-full bg-foreground/90 shadow-sm transition-all duration-200",
-              isFreeform ? "left-[29px]" : "left-[3px]"
-            )} />
-          </button>
-          <span className={cn("text-[11px] font-medium transition-colors", isFreeform ? "text-foreground" : "text-muted-foreground/50")}>
-            Freeform
-          </span>
+        <div className="mb-2 flex justify-center" data-editor-control>
+          <div className="inline-flex h-8 items-center rounded-lg bg-muted p-0.5 text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => { if (isFreeform) handleConvertToFlow('full-text'); }}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                !isFreeform ? "bg-background text-foreground shadow-sm" : "hover:text-foreground/80"
+              )}
+            >
+              <LayoutGrid className="size-3" />
+              Layout
+            </button>
+            <button
+              type="button"
+              onClick={() => { if (!isFreeform) handleConvertToFreeform(); }}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                isFreeform ? "bg-background text-foreground shadow-sm" : "hover:text-foreground/80"
+              )}
+            >
+              <Move className="size-3" />
+              Freeform
+            </button>
+          </div>
         </div>
       )}
 

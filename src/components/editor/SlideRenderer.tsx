@@ -194,7 +194,6 @@ function SlideRendererComponent({
   const counter = `${String(slideNumber).padStart(2, '0')}/${String(totalSlides).padStart(2, '0')}`;
 
   const displayScale = scale ?? 0.375;
-  const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const slideRef = useRef<HTMLDivElement>(null);
 
   const themeVars = themeToCSVars(theme);
@@ -422,21 +421,7 @@ function SlideRendererComponent({
   const handleConvertToFlow = useCallback((targetLayout: SlideLayout) => {
     if (!onSetSlideLayout) return;
     onSetSlideLayout(targetLayout);
-    setLayoutPickerOpen(false);
   }, [onSetSlideLayout]);
-
-  const FLOW_LAYOUTS: { value: SlideLayout; label: string }[] = [
-    { value: 'title-body', label: 'Título + Corpo' },
-    { value: 'cover', label: 'Capa' },
-    { value: 'full-text', label: 'Texto' },
-    { value: 'image-top', label: 'Imagem Topo' },
-    { value: 'image-bottom', label: 'Imagem Base' },
-    { value: 'image-full', label: 'Imagem Full' },
-    { value: 'quote', label: 'Citação' },
-    { value: 'list', label: 'Lista' },
-    { value: 'highlight', label: 'Destaque' },
-    { value: 'cta', label: 'CTA' },
-  ];
 
   const editableProps = (elementId: string) =>
     isEditing
@@ -959,7 +944,7 @@ function SlideRendererComponent({
             height: 1440,
             zoom: displayScale,
           }}
-          onClick={() => { if (!isBgCropping) onSelectElement(null); setLayoutPickerOpen(false); }}
+          onClick={() => { if (!isBgCropping) onSelectElement(null); }}
           onDoubleClick={handleSlideBgDoubleClick}
         >
           {/* Background crop overlay — captures all mouse events when in bg crop mode */}
@@ -1033,37 +1018,16 @@ function SlideRendererComponent({
             }}
           >
             {slide.layout === 'freeform' ? (
-              // Freeform → Flow: show layout picker
-              <div style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setLayoutPickerOpen(!layoutPickerOpen); }}
-                  title="Converter para layout padrão"
-                  className="flex items-center gap-1.5 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] text-white/90 border border-white/15 backdrop-blur-sm cursor-pointer hover:bg-black/85 transition-colors"
-                >
-                  <LayoutGrid className="size-3.5" />
-                  Layout
-                </button>
-                {layoutPickerOpen && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-full right-0 mb-1.5 rounded-lg bg-[rgba(15,15,15,0.95)] border border-white/15 p-1 min-w-[140px] backdrop-blur-xl flex flex-col gap-0.5"
-                  >
-                    {FLOW_LAYOUTS.map((l) => (
-                      <button
-                        key={l.value}
-                        type="button"
-                        onClick={() => handleConvertToFlow(l.value)}
-                        className="block w-full text-left px-2.5 py-1.5 rounded text-[11px] text-white/90 bg-transparent border-none cursor-pointer hover:bg-white/10 transition-colors"
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleConvertToFlow('full-text'); }}
+                title="Converter para layout automático"
+                className="flex items-center gap-1.5 rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] text-white/90 border border-white/15 backdrop-blur-sm cursor-pointer hover:bg-black/85 transition-colors"
+              >
+                <LayoutGrid className="size-3.5" />
+                Layout
+              </button>
             ) : (
-              // Flow → Freeform: direct conversion
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleConvertToFreeform(); }}

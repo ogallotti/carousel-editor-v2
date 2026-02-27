@@ -994,7 +994,7 @@ function SlideRendererComponent({
           )}
 
           {/* Header */}
-          <div className="hd" style={slide.layout === 'freeform' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 } : undefined}>
+          <div className="hd" style={slide.layout === 'freeform' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 } : { position: 'relative', zIndex: 2 }}>
             <span>{handle}</span>
             {showCounter && <span className="slide-counter">{counter}</span>}
           </div>
@@ -1031,7 +1031,7 @@ function SlideRendererComponent({
               {/* Non-overlay content above overlays */}
               <div className="sc" style={{ position: 'relative', zIndex: 1 }}>{renderElementsGrouped(slide.elements.filter(el => el.type !== 'overlay'))}</div>
               {/* Footer */}
-              <div className="ft" style={{ justifyContent: 'center' }}>
+              <div className="ft" style={{ justifyContent: 'center', position: 'relative', zIndex: 2 }}>
                 <span className="ft-theme">{footer}</span>
               </div>
             </>

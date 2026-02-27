@@ -250,7 +250,7 @@ export function LeftPanel({
         </div>
 
         {/* ═══════════════ TAB 1: Slides ═══════════════ */}
-        <TabsContent value="slides" className="mt-0 flex-1 overflow-hidden">
+        <TabsContent value="slides" className="mt-0 flex-1 overflow-hidden flex flex-col">
           <ScrollArea className="h-full">
             <div className="flex flex-col gap-2 p-2">
               {slides.map((slide, idx) => (

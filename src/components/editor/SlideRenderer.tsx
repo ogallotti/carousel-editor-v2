@@ -61,8 +61,19 @@ const EditableText = memo(function EditableText({
     dangerouslySetInnerHTML: { __html: html },
   });
 }, (prev, next) => {
-  // While actively editing, skip re-renders to preserve live DOM content
-  if (prev.isEditing && next.isEditing) return true;
+  // While actively editing, skip re-renders to preserve live DOM content.
+  // EXCEPTION: allow re-render if style or className changed (e.g. font-size slider
+  // in RightPanel). React won't touch innerHTML when __html is unchanged, so the
+  // user's live typing is preserved — only the style attribute updates.
+  if (prev.isEditing && next.isEditing) {
+    if (prev.className !== next.className) return false;
+    if (prev.style === next.style) return true;
+    // Shallow-compare style objects to avoid spurious re-renders
+    if (!prev.style || !next.style) return false;
+    const keys = Object.keys(next.style) as (keyof React.CSSProperties)[];
+    if (keys.length !== Object.keys(prev.style).length) return false;
+    return keys.every((k) => prev.style![k] === next.style![k]);
+  }
   // Allow re-render for all other transitions (entering/exiting edit, content updates)
   return false;
 });
@@ -987,7 +998,7 @@ function SlideRendererComponent({
               ...(fhl.borderRadius !== undefined ? { borderRadius: `${fhl.borderRadius}px` } : {}),
               ...(fhl.padding !== undefined ? { padding: `${fhl.padding}px` } : {}),
             }}>
-              <EditableText as="p" html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
+              <EditableText as="p" style={inlineStyle} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
             </div>
           );
         }

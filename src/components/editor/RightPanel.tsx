@@ -687,6 +687,23 @@ function SlideBackgroundSection({
   );
 }
 
+// ─── Inline font-size cleanup ────────────────────────────────
+// When the user changes element-level fontSize via slider, inline <span style="font-size:...">
+// from the SelectionToolbar would override the <p> font-size, making the slider appear broken.
+// Strip those inline font-sizes so the element-level value takes effect uniformly.
+function stripInlineFontSize(html: string): string {
+  return html
+    .replace(
+      /style="([^"]*)"/gi,
+      (_match, styles: string) => {
+        const cleaned = styles.replace(/font-size:\s*[^;"]+;?\s*/gi, '').trim();
+        if (!cleaned) return '';
+        return `style="${cleaned}"`;
+      },
+    )
+    .replace(/<span\s*>([\s\S]*?)<\/span>/gi, '$1');
+}
+
 // ─── Default font sizes from slide.css ──────────────────────
 
 const DEFAULT_FONT_SIZES: Record<string, number> = {
@@ -803,8 +820,20 @@ function ElementProperties({
             label="Fonte"
             value={element.fontSize}
             defaultValue={defaultFontSize}
-            onChange={(v) => onUpdate({ ...element, fontSize: v } as SlideElement)}
-            onReset={() => onUpdate({ ...element, fontSize: undefined } as SlideElement)}
+            onChange={(v) => {
+              const updated = { ...element, fontSize: v };
+              if ('content' in element && typeof element.content === 'string') {
+                (updated as { content: string }).content = stripInlineFontSize(element.content);
+              }
+              onUpdate(updated as SlideElement);
+            }}
+            onReset={() => {
+              const updated = { ...element, fontSize: undefined };
+              if ('content' in element && typeof element.content === 'string') {
+                (updated as { content: string }).content = stripInlineFontSize(element.content);
+              }
+              onUpdate(updated as SlideElement);
+            }}
             min={8}
             max={200}
             suffix="px"

@@ -59,7 +59,7 @@ npm run lint       # ESLint
 - `src/components/editor/GradientEditor.tsx` — Full gradient editor UI (stops, angle, presets)
 - `src/components/editor/ThemeEditorPanel.tsx` — Theme presets, colors, typography, custom theme save/load
 - `src/lib/export-png.ts` — PNG export via html-to-image
-- `src/lib/schema-validation.ts` — Schema validation for import/export
+- `src/lib/schema-validation.ts` — Schema validation, migration, normalization (element defaults, HTML sanitization, ID deduplication)
 - `src/lib/asset-urls.tsx` — Asset blob URL lifecycle management
 - `src/styles/slide.css` — Slide CSS (1080x1440px, CSS variables)
 - `src/lib/theme-utils.ts` — Theme to CSS variable mapping
@@ -70,15 +70,19 @@ npm run lint       # ESLint
 - Batch export as ZIP of PNGs via JSZip
 
 ### CSS Variable Architecture
-- `--highlight`, `--accent`, `--bg`, etc. = **slide theme** colors (content styling)
+- `--slide-highlight`, `--slide-accent`, `--slide-bg`, `--slide-text`, etc. = **slide theme** colors (content styling, prefixed to avoid shadcn/Tailwind collision)
 - `--editor-accent`, `--editor-accent-soft`, `--editor-accent-border` = **editor UI** colors (selection, handles) — always blue #2563eb, independent of slide theme
+- Mapping: `theme.colors.background` → `--slide-bg`, `theme.colors.text` → `--slide-text`, etc. See `src/lib/theme-utils.ts` for the full mapping.
 
 ### Editor Patterns
 - **Background pseudo-element**: `BG_PSEUDO_ID = '__bg__'` in RightPanel — slide background appears as the last item in the element list (bottom = back in z-stack). No delete/move buttons. Click to edit background properties (theme/solid/gradient/image).
+- **Double-click text editing**: Single click selects element (move/resize). Double click enters text editing mode (`editingTextId` state in SlideRenderer). `EditableText` memo component prevents React from overwriting live DOM during contentEditable editing. Escape exits text editing first, then deselects element (two-level).
 - **Image crop mode**: Double-click on images (element or slide background) enters crop mode — drag to reposition `objectPosition`/`backgroundPosition`. Escape exits.
-- **Freeform layout**: Elements use absolute positioning with drag/resize handles, smart guides, and arrow key nudge.
-- **data-editor-control**: Attribute on UI controls that should be excluded from PNG export.
-- **Two toolbar layers**: RightPanel has ALL canonical element properties (type, font, margins, alignment, color, opacity, etc.). SelectionToolbar (floating) appears only on text selection for inline span overrides (bold, italic, underline, color, size).
+- **Freeform layout**: Elements use absolute positioning with drag/resize handles, smart guides, and arrow key nudge. All document-level event handlers use refs to avoid stale closures.
+- **data-editor-control**: Attribute on UI controls that should be excluded from PNG export (drag handles, resize handles, smart guide overlay, layout toggle, etc.).
+- **Two toolbar layers**: RightPanel has ALL canonical element properties (type, font, margins, alignment, color, opacity, etc.). SelectionToolbar (floating) appears only during text editing (`editingTextId`) for inline span overrides (bold, italic, underline, color, size).
+- **Undo coalesce**: Rapid same-type actions on the same element within 500ms are coalesced into a single undo entry (prevents slider dragging from flooding undo stack).
+- **Schema migration on load**: Both ZIP import and IndexedDB load pass schema through `migrateSchema()` which normalizes elements (textAlign, opacity, heading level, etc.) and sanitizes HTML content.
 - **Radix UI gotcha**: `<SelectItem value="">` crashes — use sentinel `"__default__"` and convert in `onValueChange`.
 - **Element DnD reorder**: RightPanel element list uses HTML5 drag-and-drop (reversed display order → array index conversion).
 

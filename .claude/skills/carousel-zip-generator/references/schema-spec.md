@@ -152,21 +152,21 @@ Gradients are stored as CSS strings in the `background` field:
 
 | Color | Purpose | CSS Variable |
 |-------|---------|-------------|
-| `background` | Slide background | `--bg` |
-| `backgroundSubtle` | Subtle bg variant | `--bg-subtle` |
-| `text` | Primary text (headings) | `--text` |
-| `textSecondary` | Body text, paragraphs | `--text-secondary` |
-| `textMuted` | Footer, header text | `--text-muted` |
-| `highlight` | Primary accent (tags, icons) | `--highlight` |
-| `accent` | Secondary accent | `--accent` |
-| `divider` | Divider lines | `--divider` |
-| `cardBackground` | Card/container bg | `--card-bg` |
-| `highlightSoft` | Highlight block background | `--highlight-soft` |
-| `highlightBorder` | Highlight block border | `--highlight-border` |
-| `iconColor` | List item icons, quote marks | `--icon-color` |
-| `iconColorAlt` | Secondary icon color | `--icon-color-alt` |
+| `background` | Slide background | `--slide-bg` |
+| `backgroundSubtle` | Subtle bg variant | `--slide-bg-subtle` |
+| `text` | Primary text (headings) | `--slide-text` |
+| `textSecondary` | Body text, paragraphs | `--slide-text-secondary` |
+| `textMuted` | Footer, header text | `--slide-text-muted` |
+| `highlight` | Primary accent (tags, icons) | `--slide-highlight` |
+| `accent` | Secondary accent | `--slide-accent` |
+| `divider` | Divider lines | `--slide-divider` |
+| `cardBackground` | Card/container bg | `--slide-card-bg` |
+| `highlightSoft` | Highlight block background | `--slide-highlight-soft` |
+| `highlightBorder` | Highlight block border | `--slide-highlight-border` |
+| `iconColor` | List item icons, quote marks | `--slide-icon-color` |
+| `iconColorAlt` | Secondary icon color | `--slide-icon-color-alt` |
 
-### ThemeTypography (5 categories, all required)
+### ThemeTypography (5 categories: heading, paragraph, subtitle, tag, quote — all required)
 
 ```json
 {

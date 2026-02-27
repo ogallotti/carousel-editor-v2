@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Carousel Editor V2
 
-## Getting Started
+Editor visual local-first para carrosséis de Instagram. Crie, edite e exporte slides como imagens PNG — tudo roda no navegador, sem backend.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, client-side rendering)
+- **Tailwind CSS 4** + **shadcn/ui** (Radix)
+- **Dexie.js 4** (IndexedDB, persistência local)
+- **html-to-image** + **JSZip** (export PNG/ZIP)
+
+## Começando
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Comandos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev        # Dev server
+npm run build      # Build de produção
+npm run start      # Servidor de produção
+npm run lint       # ESLint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Funcionalidades
 
-## Learn More
+- 12 tipos de elementos (heading, paragraph, tag, image, overlay, quote, list-item, etc.)
+- 11 layouts (cover, title-body, freeform, image-full, quote, list, cta, etc.)
+- Temas customizáveis (cores, tipografia, 12 Google Fonts)
+- Modo freeform com drag/resize, smart guides e nudge por teclado
+- Edição de texto inline com duplo-clique
+- Undo/redo (50 níveis) com coalesce para sliders
+- Export PNG individual ou ZIP em lote
+- Import/export ZIP (schema.json + assets) para interoperabilidade com agentes IA
+- Auto-save com debounce de 2s para IndexedDB
+- Gradientes customizáveis (linear, radial)
+- Temas customizados (salvar/carregar do IndexedDB)
 
-To learn more about Next.js, take a look at the following resources:
+## Dimensões
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Slides: **1080x1440px** (Instagram 4:5 portrait)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Interoperabilidade IA
 
-## Deploy on Vercel
+O editor importa/exporta arquivos `.zip` contendo `schema.json` + pasta `assets/`. O schema segue o formato CarouselSchema v1 definido em `src/types/schema.ts`. Schemas são normalizados e sanitizados automaticamente no import.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Vercel (Next.js padrão) ou qualquer host que suporte Next.js.

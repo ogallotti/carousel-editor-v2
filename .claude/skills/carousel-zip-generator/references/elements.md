@@ -67,7 +67,7 @@ Heading (and paragraph, subtitle, quote, highlight, list-item) support inline fo
 
 Supported: `<b>`, `<i>`, `<u>`, `<span style="color:...">`, `<span style="font-size:...px">`, `<span class="hl">`
 
-A classe `hl` aplica a cor de destaque do tema (`var(--highlight)` no CSS). Exemplo:
+A classe `hl` aplica a cor de destaque do tema (`var(--slide-highlight)` no CSS). Exemplo:
 
 ```json
 "content": "O segredo dos devs que entregam <span class=\"hl\">3x mais</span>."

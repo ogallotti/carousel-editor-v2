@@ -65,11 +65,17 @@ carousel.zip
 
 The editor validates that:
 1. `version` is a number
-2. `slides` is an array
+2. `slides` is an array (each item is an object with `elements` array)
 3. `theme` is an object
 4. `canvas` is an object
+5. `header` is an object with `handle` (string) and `showCounter` (boolean)
+6. `footer` is an object with `text` (string)
 
-If any of these fail, the import is rejected. All other missing fields are filled with defaults via deep merge with `createEmptySchema()`.
+If critical fields (1-4) fail, the import is rejected. Other missing fields are filled with defaults via deep merge with `createEmptySchema()`.
+
+**Element normalization on import**: The editor normalizes every element — fills missing `textAlign` with CSS defaults per type, validates `type`/`level`/`variant`, clamps `opacity` to 0-1, generates missing IDs, deduplicates IDs, and sanitizes HTML content (strips `<script>`, `<iframe>`, `<object>`, `<embed>` tags).
+
+**Asset validation**: Image `src` paths starting with `assets/` are verified against the ZIP contents. Broken references are cleared silently.
 
 **Default values applied during migration** (if fields are missing):
 - `id`: `"imported"`
@@ -112,8 +118,7 @@ The theme controls all visual styling of slides. It has 4 sections: `name`, `col
     "paragraph": { "family": "Archivo", "weight": 400 },
     "subtitle":  { "family": "Archivo", "weight": 500 },
     "tag":       { "family": "Archivo", "weight": 700 },
-    "quote":     { "family": "Archivo", "weight": 500 },
-    "stat":      { "family": "Archivo", "weight": 900 }
+    "quote":     { "family": "Archivo", "weight": 500 }
   },
   "fontScale": 1
 }
@@ -123,19 +128,19 @@ The theme controls all visual styling of slides. It has 4 sections: `name`, `col
 
 | Field | CSS Variable | Purpose | Used by |
 |---|---|---|---|
-| `background` | `--bg` | Slide background color | `.slide` background |
-| `backgroundSubtle` | `--bg-subtle` | Slightly lighter/darker variant of background | Subtle backgrounds |
-| `text` | `--text` | Primary text (headings, strong) | `h1`, `h2`, `h3`, `strong` |
-| `textSecondary` | `--text-secondary` | Body text, subtitles, list items | `p`, `.sub`, `.list-item` |
-| `textMuted` | `--text-muted` | Header/footer text, attribution | `.hd`, `.ft` |
-| `highlight` | `--highlight` | Primary accent color (highlighted text, stat values) | `.hl`, `.stat-value` |
-| `accent` | `--accent` | Secondary accent (tags, stat labels, footer brand) | `.tag`, `.stat-label`, `.ft-theme` |
-| `divider` | `--divider` | Divider line color | `.divider-line` |
-| `cardBackground` | `--card-bg` | Card/stat item background | `.stat-item` |
-| `highlightSoft` | `--highlight-soft` | Highlight block background (low-opacity highlight) | `.highlight-block` background |
-| `highlightBorder` | `--highlight-border` | Highlight block border (medium-opacity highlight) | `.highlight-block` border |
-| `iconColor` | `--icon-color` | List item icon color, quote marks | `.list-icon`, `.quote-mark` |
-| `iconColorAlt` | `--icon-color-alt` | Alternate icon color | Quote mark color |
+| `background` | `--slide-bg` | Slide background color | `.slide` background |
+| `backgroundSubtle` | `--slide-bg-subtle` | Slightly lighter/darker variant of background | Subtle backgrounds |
+| `text` | `--slide-text` | Primary text (headings, strong) | `h1`, `h2`, `h3`, `strong` |
+| `textSecondary` | `--slide-text-secondary` | Body text, subtitles, list items | `p`, `.sub`, `.list-item` |
+| `textMuted` | `--slide-text-muted` | Header/footer text, attribution | `.hd`, `.ft` |
+| `highlight` | `--slide-highlight` | Primary accent color (highlighted text) | `.hl` |
+| `accent` | `--slide-accent` | Secondary accent (tags, footer brand) | `.tag`, `.ft-theme` |
+| `divider` | `--slide-divider` | Divider line color | `.divider-line` |
+| `cardBackground` | `--slide-card-bg` | Card/container background | Containers |
+| `highlightSoft` | `--slide-highlight-soft` | Highlight block background (low-opacity highlight) | `.highlight-block` background |
+| `highlightBorder` | `--slide-highlight-border` | Highlight block border (medium-opacity highlight) | `.highlight-block` border |
+| `iconColor` | `--slide-icon-color` | List item icon color, quote marks | `.list-icon`, `.quote-mark` |
+| `iconColorAlt` | `--slide-icon-color-alt` | Alternate icon color | Quote mark color |
 
 ### 3.3 Typography Fields
 
@@ -148,7 +153,6 @@ Each typography category has `family` (font name) and `weight` (CSS font-weight 
 | `subtitle` | `.sub` elements | 32px |
 | `tag` | `.tag` elements | 22px, uppercase, letter-spacing 0.15em |
 | `quote` | `.quote-text` elements | 46px, italic |
-| `stat` | `.stat-value` elements | 64px |
 
 ### 3.4 Available Font Families
 
@@ -204,11 +208,11 @@ You can set a slide background in three ways (applied in this priority):
 
 ---
 
-## 5. Layout Types (12)
+## 5. Layout Types (11)
 
 The `layout` field determines how elements are arranged within the slide.
 
-### Flow Layouts (11 types)
+### Flow Layouts (10 types)
 These use CSS flexbox with `flex-direction: column`, `align-items: center`, `justify-content: center`. Elements flow vertically, centered. Padding is `60px 100px` on the content area.
 
 | Layout | Description | Typical Elements |
@@ -219,7 +223,6 @@ These use CSS flexbox with `flex-direction: column`, `align-items: center`, `jus
 | `image-top` | Image area at top, text below. | image (area variant), heading, paragraph |
 | `image-bottom` | Text at top, image area at bottom. | heading, paragraph, image (area variant) |
 | `image-full` | Full-bleed background image with overlay text. | image (background variant), overlay, heading |
-| `stats` | Statistics with numbers in a 2-column grid. | heading, stat |
 | `quote` | Quotation with decorative quote mark. | quote, emoji |
 | `list` | Bulleted/icon list items. | heading, list-item(s) |
 | `highlight` | Important text in a highlighted box. | heading, highlight |
@@ -238,7 +241,7 @@ In flow layouts (not freeform), `overlay` elements are treated specially: they a
 
 ---
 
-## 6. Element Types (13)
+## 6. Element Types (12)
 
 All elements share these **base fields** from `BaseElement`:
 
@@ -392,29 +395,7 @@ A quotation with decorative quote mark.
 
 **Rendering**: Large opening `"` mark (96px, iconColorAlt), italic quote text (46px, font-quote), optional attribution in textMuted color.
 
-### 6.9 `stat`
-
-A statistics grid showing value/label pairs in a 2-column layout.
-
-```json
-{
-  "id": "el-stat1",
-  "type": "stat",
-  "items": [
-    { "value": "100+", "label": "Clientes" },
-    { "value": "50k", "label": "Seguidores" },
-    { "value": "98%", "label": "Satisfacao" }
-  ]
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `items` | `Array<{ value: string; label: string }>` | Yes | Array of stat items. Each has a `value` (big number) and `label` (description). |
-
-**Rendering**: 2-column CSS grid. Each item in a rounded card (cardBackground). Value in highlight color (64px, weight-stat 900). Label in accent color (24px).
-
-### 6.10 `list-item`
+### 6.9 `list-item`
 
 A single list item with an optional icon. Consecutive list-items are automatically grouped into a `.list-items` container.
 
@@ -429,7 +410,7 @@ A single list item with an optional icon. Consecutive list-items are automatical
 
 **Rendering**: Flexbox row with icon (48x48px, iconColor) + text (36px, textSecondary). Left-aligned by default.
 
-### 6.11 `highlight`
+### 6.10 `highlight`
 
 Text displayed in a highlighted box with a subtle background and border.
 
@@ -443,7 +424,7 @@ Text displayed in a highlighted box with a subtle background and border.
 
 **Rendering**: Rounded box (16px radius) with highlightSoft background, highlightBorder border, 32px padding. Text uses primary text color.
 
-### 6.12 `divider`
+### 6.11 `divider`
 
 A small horizontal line separator.
 
@@ -453,7 +434,7 @@ A small horizontal line separator.
 
 No additional fields. **Rendering**: 80px wide, 3px tall, divider color, rounded.
 
-### 6.13 `spacer`
+### 6.12 `spacer`
 
 Invisible vertical space.
 
@@ -471,7 +452,7 @@ Invisible vertical space.
 
 Text content fields (`content` in tag, heading, paragraph, subtitle, quote, highlight, list-item) support inline HTML:
 
-- `<span class="hl">text</span>` -- Renders in the highlight color (--highlight). Use for emphasis.
+- `<span class="hl">text</span>` -- Renders in the highlight color (--slide-highlight). Use for emphasis.
 - `<strong>text</strong>` -- Bold text (weight 700, primary text color).
 - `<br>` -- Line break.
 
@@ -508,8 +489,7 @@ The editor ships with 2 built-in presets. You can use either as-is, or create a 
     "paragraph": { "family": "Archivo", "weight": 400 },
     "subtitle":  { "family": "Archivo", "weight": 500 },
     "tag":       { "family": "Archivo", "weight": 700 },
-    "quote":     { "family": "Archivo", "weight": 500 },
-    "stat":      { "family": "Archivo", "weight": 900 }
+    "quote":     { "family": "Archivo", "weight": 500 }
   },
   "fontScale": 1
 }
@@ -540,8 +520,7 @@ The editor ships with 2 built-in presets. You can use either as-is, or create a 
     "paragraph": { "family": "Archivo", "weight": 400 },
     "subtitle":  { "family": "Archivo", "weight": 500 },
     "tag":       { "family": "Archivo", "weight": 700 },
-    "quote":     { "family": "Archivo", "weight": 500 },
-    "stat":      { "family": "Archivo", "weight": 900 }
+    "quote":     { "family": "Archivo", "weight": 500 }
   },
   "fontScale": 1
 }
@@ -642,8 +621,7 @@ The canvas is 1080px wide and 1440px tall. Coordinates are absolute pixels from 
       "paragraph": { "family": "Archivo", "weight": 400 },
       "subtitle":  { "family": "Archivo", "weight": 500 },
       "tag":       { "family": "Archivo", "weight": 700 },
-      "quote":     { "family": "Archivo", "weight": 500 },
-      "stat":      { "family": "Archivo", "weight": 900 }
+      "quote":     { "family": "Archivo", "weight": 500 }
     },
     "fontScale": 1
   },
@@ -717,8 +695,7 @@ This example assumes the ZIP contains `assets/hero.jpg` and `assets/product.jpg`
       "paragraph": { "family": "Archivo", "weight": 400 },
       "subtitle":  { "family": "Archivo", "weight": 500 },
       "tag":       { "family": "Archivo", "weight": 700 },
-      "quote":     { "family": "Archivo", "weight": 500 },
-      "stat":      { "family": "Archivo", "weight": 900 }
+      "quote":     { "family": "Archivo", "weight": 500 }
     },
     "fontScale": 1
   },
@@ -782,28 +759,18 @@ This example assumes the ZIP contains `assets/hero.jpg` and `assets/product.jpg`
       "paragraph": { "family": "DM Sans",       "weight": 400 },
       "subtitle":  { "family": "DM Sans",       "weight": 500 },
       "tag":       { "family": "Space Grotesk", "weight": 700 },
-      "quote":     { "family": "Playfair Display", "weight": 500 },
-      "stat":      { "family": "Space Grotesk", "weight": 900 }
+      "quote":     { "family": "Playfair Display", "weight": 500 }
     },
     "fontScale": 1
   },
   "slides": [
     {
       "id": "slide-1",
-      "layout": "stats",
+      "layout": "highlight",
       "elements": [
         { "id": "s1-tag", "type": "tag", "content": "RESULTADOS", "textAlign": "center" },
         { "id": "s1-heading", "type": "heading", "level": 2, "content": "Em Numeros", "textAlign": "center" },
-        {
-          "id": "s1-stat",
-          "type": "stat",
-          "items": [
-            { "value": "500+", "label": "Clientes Atendidos" },
-            { "value": "R$2M", "label": "Faturamento Gerado" },
-            { "value": "98%", "label": "Taxa de Satisfacao" },
-            { "value": "15+", "label": "Anos de Experiencia" }
-          ]
-        }
+        { "id": "s1-highlight", "type": "highlight", "content": "<strong>500+</strong> clientes atendidos, <strong>R$2M</strong> em faturamento gerado, <strong>98%</strong> de satisfacao e <strong>15+</strong> anos de experiencia.", "textAlign": "center" }
       ]
     },
     {
@@ -860,8 +827,7 @@ This example assumes the ZIP contains `assets/hero.jpg` and `assets/product.jpg`
       "paragraph": { "family": "Inter", "weight": 400 },
       "subtitle":  { "family": "Inter", "weight": 500 },
       "tag":       { "family": "Inter", "weight": 700 },
-      "quote":     { "family": "Inter", "weight": 500 },
-      "stat":      { "family": "Inter", "weight": 900 }
+      "quote":     { "family": "Inter", "weight": 500 }
     },
     "fontScale": 1
   },
@@ -926,17 +892,16 @@ Before delivering a schema.json, verify:
 
 - [ ] `version` is `1` (number, not string)
 - [ ] `slides` is a non-empty array
-- [ ] `theme` is an object with `colors` (13 fields), `typography` (6 categories), `fontScale`
+- [ ] `theme` is an object with `colors` (13 fields), `typography` (5 categories), `fontScale`
 - [ ] `canvas` is `{ "width": 1080, "height": 1440 }`
 - [ ] Every element has a unique `id` across all slides
-- [ ] Every element has a valid `type` from the 13 types
+- [ ] Every element has a valid `type` from the 12 types
 - [ ] Heading elements have a `level` (1, 2, or 3)
 - [ ] Image elements have a `variant` ("area", "background", or "inline")
 - [ ] Image elements have a `src` (can be empty string for placeholder)
-- [ ] Stat elements have an `items` array with `{ value, label }` objects
 - [ ] Spacer elements have a `height` number
 - [ ] Overlay elements have a `fill` string
-- [ ] Font families are from the 9 supported fonts
+- [ ] Font families are from the 12 supported fonts
 - [ ] Asset references match files in the `assets/` folder
 - [ ] Freeform elements have `x`, `y`, and `w` set
 - [ ] `createdAt` and `updatedAt` are valid ISO 8601 strings

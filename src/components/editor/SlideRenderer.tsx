@@ -343,6 +343,11 @@ function SlideRendererComponent({
     return () => window.removeEventListener('keydown', handleEscape, true);
   }, [cropModeId]);
 
+  // Exit crop mode when slide becomes inactive (e.g. user switches slides)
+  useEffect(() => {
+    if (!isEditing) setCropModeId(null);
+  }, [isEditing]);
+
   const handleImageSelected = useCallback(
     (src: string) => {
       if (!imageDialogTarget) return;
@@ -437,6 +442,11 @@ function SlideRendererComponent({
   const handleSlideBgDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       if (!isEditing || !slide.backgroundImage || !onUpdateSlideBgPosition) return;
+      // Toggle: double-click again exits crop mode
+      if (cropModeId === BG_CROP_ID) {
+        setCropModeId(null);
+        return;
+      }
       // Only trigger if click was NOT inside an element
       let target: HTMLElement | null = e.target as HTMLElement;
       while (target && target !== e.currentTarget) {
@@ -446,7 +456,7 @@ function SlideRendererComponent({
       }
       setCropModeId(BG_CROP_ID);
     },
-    [isEditing, slide.backgroundImage, onUpdateSlideBgPosition]
+    [isEditing, slide.backgroundImage, onUpdateSlideBgPosition, cropModeId]
   );
 
   const handleBgCropDragStart = useCallback(
@@ -459,12 +469,14 @@ function SlideRendererComponent({
       const startX = e.clientX;
       const startY = e.clientY;
       const sensitivity = 0.15 / displayScale;
+      let didDrag = false;
 
       setDraggingImageId(BG_CROP_ID);
 
       const handleMouseMove = (ev: MouseEvent) => {
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
         const newX = Math.min(100, Math.max(0, x - dx * sensitivity));
         const newY = Math.min(100, Math.max(0, y - dy * sensitivity));
         onUpdateSlideBgPosition(`${newX.toFixed(1)}% ${newY.toFixed(1)}%`);
@@ -472,6 +484,8 @@ function SlideRendererComponent({
 
       const handleMouseUp = () => {
         setDraggingImageId(null);
+        // Click without dragging → exit crop mode
+        if (!didDrag) setCropModeId(null);
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
       };
@@ -1083,7 +1097,7 @@ function SlideRendererComponent({
             height: 1440,
             zoom: displayScale,
           }}
-          onClick={() => { if (!isBgCropping) onSelectElement(null); }}
+          onClick={() => { if (isBgCropping) { setCropModeId(null); } else { onSelectElement(null); } }}
           onDoubleClick={handleSlideBgDoubleClick}
         >
           {/* Background crop overlay — captures all mouse events when in bg crop mode */}

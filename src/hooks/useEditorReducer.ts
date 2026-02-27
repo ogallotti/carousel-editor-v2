@@ -251,10 +251,16 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       // Freeform: index 0 = bottom z-layer = bottom of list (displayed reversed)
       slide.elements.reverse();
 
-      // Ensure overlays are always at the bottom of the stack (index 0)
+      // Ensure overlays stay at the visual bottom of the element list:
       const overlays = slide.elements.filter((el) => el.type === 'overlay');
       const nonOverlays = slide.elements.filter((el) => el.type !== 'overlay');
-      slide.elements = [...overlays, ...nonOverlays];
+      if (toFreeform) {
+        // Freeform: overlays at index 0 = lowest z-layer (behind everything)
+        slide.elements = [...overlays, ...nonOverlays];
+      } else {
+        // Flow: overlays at end of array = bottom of RightPanel list
+        slide.elements = [...nonOverlays, ...overlays];
+      }
 
       slides[action.payload.slideIndex] = slide;
       return { ...s, carousel: { ...s.carousel, slides }, selectedElementId: null };

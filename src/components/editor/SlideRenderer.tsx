@@ -994,7 +994,7 @@ function SlideRendererComponent({
           )}
 
           {/* Header */}
-          <div className="hd" style={slide.layout === 'freeform' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } : undefined}>
+          <div className="hd" style={slide.layout === 'freeform' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 } : undefined}>
             <span>{handle}</span>
             {showCounter && <span className="slide-counter">{counter}</span>}
           </div>
@@ -1009,7 +1009,7 @@ function SlideRendererComponent({
               {/* Smart guides overlay */}
               {isEditing && <SmartGuideOverlay guides={guides} />}
               {/* Footer on top of freeform content */}
-              <div className="ft" style={{ justifyContent: 'center', position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100 }}>
+              <div className="ft" style={{ justifyContent: 'center', position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 9999 }}>
                 <span className="ft-theme">{footer}</span>
               </div>
             </>

@@ -296,23 +296,25 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const emitChange = useCallback((css: string) => {
-    lastEmittedRef.current = css;
-    onChangeRef.current(css);
-  }, []);
+  // Emit gradient CSS to parent whenever internal state changes.
+  // This replaces the fragile pattern of extracting css from inside setState
+  // updaters via `let css; setState(prev => { css = ...; return next }); emit(css!)`
+  // which fails when React 18 defers the updater (css stays undefined → fill becomes undefined → transparent).
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    const css = gradientToCSS(state);
+    if (css !== lastEmittedRef.current) {
+      lastEmittedRef.current = css;
+      onChangeRef.current(css);
+    }
+  }, [state]);
 
   const updateState = useCallback(
     (updater: (prev: GradientState) => GradientState) => {
-      let css: string;
-      setState((prev) => {
-        const next = updater(prev);
-        css = gradientToCSS(next);
-        return next;
-      });
-      // setState is synchronous in event handlers, so css is set
-      emitChange(css!);
+      setState(updater);
     },
-    [emitChange],
+    [],
   );
 
   const selectedStop = useMemo(
@@ -372,13 +374,10 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       const handleMove = (moveEvent: MouseEvent) => {
         if (!draggingRef.current) return;
         const pos = getPositionFromEvent(moveEvent);
-        let css: string;
-        setState((prev) => {
-          const next = { ...prev, stops: prev.stops.map((s) => s.id === draggingRef.current ? { ...s, position: Math.round(pos) } : s) };
-          css = gradientToCSS(next);
-          return next;
-        });
-        emitChange(css!);
+        setState((prev) => ({
+          ...prev,
+          stops: prev.stops.map((s) => s.id === draggingRef.current ? { ...s, position: Math.round(pos) } : s),
+        }));
       };
 
       const handleUp = () => {
@@ -390,7 +389,7 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       window.addEventListener('mousemove', handleMove);
       window.addEventListener('mouseup', handleUp);
     },
-    [getPositionFromEvent, emitChange],
+    [getPositionFromEvent],
   );
 
   const handleStopTouchStart = useCallback(
@@ -406,13 +405,10 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
         const rect = barRef.current.getBoundingClientRect();
         const x = touch.clientX - rect.left;
         const pos = clamp((x / rect.width) * 100, 0, 100);
-        let css: string;
-        setState((prev) => {
-          const next = { ...prev, stops: prev.stops.map((s) => s.id === draggingRef.current ? { ...s, position: Math.round(pos) } : s) };
-          css = gradientToCSS(next);
-          return next;
-        });
-        emitChange(css!);
+        setState((prev) => ({
+          ...prev,
+          stops: prev.stops.map((s) => s.id === draggingRef.current ? { ...s, position: Math.round(pos) } : s),
+        }));
       };
 
       const handleEnd = () => {
@@ -424,7 +420,7 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       window.addEventListener('touchmove', handleMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
     },
-    [emitChange],
+    [],
   );
 
   const deleteStop = useCallback(
@@ -491,9 +487,8 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       const parsed = parseCSSGradient(fill);
       setState(parsed);
       setSelectedStopId(parsed.stops[0]?.id ?? null);
-      emitChange(fill);
     },
-    [emitChange],
+    [],
   );
 
   // ── Render ──

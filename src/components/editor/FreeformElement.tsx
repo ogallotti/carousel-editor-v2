@@ -100,6 +100,8 @@ export function FreeformElement({
         if (!isEditing || !isSelected) return;
         // Don't drag while in text editing mode
         if (isTextEditing) return;
+        // Don't initiate drag on double-click (let onDoubleClick handle it)
+        if (e.detail >= 2) return;
         // Don't interfere with contentEditable, resize handle, or drag handle
         const target = e.target as HTMLElement;
         if (

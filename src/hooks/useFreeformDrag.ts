@@ -47,8 +47,14 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
 
+  // Cleanup ref to remove stale listeners from previous drag sessions
+  const cleanupRef = useRef<(() => void) | null>(null);
+
   const handleDragStart = useCallback((e: React.MouseEvent, mode: 'drag' | 'resize') => {
-    e.preventDefault();
+    // Clean up any stale listeners from a previous session that didn't get a mouseup
+    cleanupRef.current?.();
+    cleanupRef.current = null;
+
     e.stopPropagation();
 
     const el = elementRef.current;
@@ -65,10 +71,10 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
 
     const THRESHOLD = 4; // px before drag is considered real
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (ev: MouseEvent) => {
       const state = dragState.current;
-      const dx = e.clientX - state.startX;
-      const dy = e.clientY - state.startY;
+      const dx = ev.clientX - state.startX;
+      const dy = ev.clientY - state.startY;
 
       // Activate drag only after exceeding movement threshold
       if (!state.isDragging && !state.isResizing) {
@@ -77,6 +83,9 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
         state.isResizing = mode === 'resize';
         document.body.style.cursor = mode === 'drag' ? 'grabbing' : 'se-resize';
       }
+
+      // Prevent text selection during active drag
+      ev.preventDefault();
 
       const currentElement = elementRef.current;
       const currentScale = scaleRef.current;
@@ -130,7 +139,7 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
       }
     };
 
-    const handleMouseUp = () => {
+    const cleanup = () => {
       const state = dragState.current;
       const wasActive = state.isDragging || state.isResizing;
       state.isDragging = false;
@@ -139,12 +148,14 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
       onGuidesChangeRef.current?.([]);
 
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', cleanup);
       if (wasActive) document.body.style.cursor = '';
+      cleanupRef.current = null;
     };
 
+    cleanupRef.current = cleanup;
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', cleanup);
   }, []);
 
   const startDrag = useCallback((e: React.MouseEvent) => {

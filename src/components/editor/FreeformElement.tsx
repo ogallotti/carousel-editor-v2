@@ -61,6 +61,8 @@ export function FreeformElement({
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     textAlign: element.textAlign,
     ...(isOverlay ? { pointerEvents: 'none' } : {}),
+    // Override CSS cursor: move when in text editing mode
+    ...(isTextEditing ? { cursor: 'text', userSelect: 'text' } : {}),
   };
 
   if (h) {
@@ -96,6 +98,8 @@ export function FreeformElement({
       onMouseDown={(e) => {
         if (isOverlay) return;
         if (!isEditing || !isSelected) return;
+        // Don't drag while in text editing mode
+        if (isTextEditing) return;
         // Don't interfere with contentEditable, resize handle, or drag handle
         const target = e.target as HTMLElement;
         if (

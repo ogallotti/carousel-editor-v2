@@ -53,8 +53,9 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
 
     const el = elementRef.current;
     const state = dragState.current;
-    state.isDragging = mode === 'drag';
-    state.isResizing = mode === 'resize';
+    // Don't activate drag/resize yet — wait for movement threshold
+    state.isDragging = false;
+    state.isResizing = false;
     state.startX = e.clientX;
     state.startY = e.clientY;
     state.startElementX = el.x ?? 0;
@@ -62,16 +63,27 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
     state.startElementW = el.w ?? 200;
     state.startElementH = el.h ?? 50;
 
+    const THRESHOLD = 4; // px before drag is considered real
+
     const handleMouseMove = (e: MouseEvent) => {
       const state = dragState.current;
-      if (!state.isDragging && !state.isResizing) return;
+      const dx = e.clientX - state.startX;
+      const dy = e.clientY - state.startY;
+
+      // Activate drag only after exceeding movement threshold
+      if (!state.isDragging && !state.isResizing) {
+        if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
+        state.isDragging = mode === 'drag';
+        state.isResizing = mode === 'resize';
+        document.body.style.cursor = mode === 'drag' ? 'grabbing' : 'se-resize';
+      }
 
       const currentElement = elementRef.current;
       const currentScale = scaleRef.current;
 
       // Convert screen coordinates to slide coordinates
-      const deltaX = (e.clientX - state.startX) / currentScale;
-      const deltaY = (e.clientY - state.startY) / currentScale;
+      const deltaX = dx / currentScale;
+      const deltaY = dy / currentScale;
 
       if (state.isDragging) {
         // Drag: update position
@@ -120,6 +132,7 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
 
     const handleMouseUp = () => {
       const state = dragState.current;
+      const wasActive = state.isDragging || state.isResizing;
       state.isDragging = false;
       state.isResizing = false;
 
@@ -127,14 +140,11 @@ export function useFreeformDrag({ element, scale, onUpdate, otherElements, onGui
 
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
+      if (wasActive) document.body.style.cursor = '';
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-
-    // Set cursor
-    document.body.style.cursor = mode === 'drag' ? 'grabbing' : 'se-resize';
   }, []);
 
   const startDrag = useCallback((e: React.MouseEvent) => {

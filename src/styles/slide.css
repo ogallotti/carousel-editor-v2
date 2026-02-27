@@ -428,6 +428,11 @@
   box-sizing: border-box;
 }
 
+.slide-freeform .freeform-element [contenteditable] {
+  cursor: text;
+  user-select: text;
+}
+
 .slide-freeform .freeform-element [contenteditable]:focus {
   outline: none;
 }

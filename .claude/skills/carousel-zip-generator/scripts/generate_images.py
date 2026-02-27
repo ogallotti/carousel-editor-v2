@@ -121,7 +121,7 @@ def poll_task(task_id, api_key):
 def download_image(url, output_path):
     # type: (str, Path) -> bool
     try:
-        req = urllib.request.Request(url)
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=60) as resp:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(resp.read())

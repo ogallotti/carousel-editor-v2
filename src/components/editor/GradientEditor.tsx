@@ -263,9 +263,10 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
   const barRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef<string | null>(null);
 
-  // Sync when value prop changes externally
+  // Sync when value prop changes externally (skip during active drag)
   const lastEmittedRef = useRef(value);
   useEffect(() => {
+    if (draggingRef.current) return;
     if (value !== lastEmittedRef.current) {
       const parsed = parseCSSGradient(value);
       setState(parsed);

@@ -43,12 +43,13 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 export async function saveProjectSchema(projectId: string, schema: CarouselSchema): Promise<void> {
-  schema.updatedAt = new Date().toISOString();
+  // Clone with updated timestamp — never mutate the original (it's React state)
+  const schemaToSave = { ...schema, updatedAt: new Date().toISOString() };
 
   await db.projectData.put({
     projectId,
-    schema,
-    version: schema.version,
+    schema: schemaToSave,
+    version: schemaToSave.version,
   });
 
   await db.projects.update(projectId, { updatedAt: new Date() });

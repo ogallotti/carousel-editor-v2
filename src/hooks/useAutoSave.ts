@@ -30,11 +30,25 @@ export function useAutoSave(
       timerRef.current = null;
     }
 
+    // Capture the schema reference at save time
+    const schemaAtSave = schemaRef.current;
+
     setIsSaving(true);
     try {
-      await saveProjectSchema(projectId, schemaRef.current);
+      await saveProjectSchema(projectId, schemaAtSave);
       setLastSaved(new Date());
-      onSavedRef.current?.();
+
+      // Only mark as saved if the schema hasn't changed during the async save.
+      // If user made changes while saving, isDirty stays true and we schedule another save.
+      if (schemaRef.current === schemaAtSave) {
+        onSavedRef.current?.();
+      } else {
+        // Schema changed during save — schedule another save
+        timerRef.current = setTimeout(() => {
+          timerRef.current = null;
+          saveNow();
+        }, DEBOUNCE_MS);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -62,6 +76,17 @@ export function useAutoSave(
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, projectId, saveNow]);
+
+  // Save immediately when the tab becomes hidden (user switching tabs, closing)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isDirty && projectId && schemaRef.current) {
+        saveNow();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isDirty, projectId, saveNow]);
 
   return { isSaving, lastSaved, saveNow };

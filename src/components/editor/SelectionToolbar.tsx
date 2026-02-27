@@ -58,12 +58,15 @@ function applySelectionFontSize(sizePx: number): void {
   // Use fontSize command with a placeholder value, then replace the <font> tag
   document.execCommand('fontSize', false, '7');
 
-  // Find the font elements just created and replace with styled spans
+  // Find the font elements just created and replace with styled spans.
+  // Move child nodes (don't use innerHTML) to preserve selection anchors.
   const fontElements = document.querySelectorAll('font[size="7"]');
   fontElements.forEach((font) => {
     const span = document.createElement('span');
     span.style.fontSize = `${sizePx}px`;
-    span.innerHTML = font.innerHTML;
+    while (font.firstChild) {
+      span.appendChild(font.firstChild);
+    }
     font.parentNode?.replaceChild(span, font);
   });
 }
@@ -266,6 +269,8 @@ export function SelectionToolbar({
           side="top"
           align="center"
           onMouseDown={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
         >
           <div className="mb-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Tema</div>
           <div className="flex gap-1 mb-2">

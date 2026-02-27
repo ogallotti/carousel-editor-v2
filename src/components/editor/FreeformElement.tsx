@@ -98,8 +98,15 @@ export function FreeformElement({
       onMouseDown={(e) => {
         if (isOverlay) return;
         if (!isEditing || !isSelected) return;
-        // Don't drag while in text editing mode
-        if (isTextEditing) return;
+        // In text editing mode: prevent blur when clicking non-text areas
+        // (keeps contentEditable focused so selection/toolbar work)
+        if (isTextEditing) {
+          const target = e.target as HTMLElement;
+          if (!target.closest('[contenteditable]')) {
+            e.preventDefault();
+          }
+          return;
+        }
         // Don't initiate drag on double-click (let onDoubleClick handle it)
         if (e.detail >= 2) return;
         // Don't interfere with contentEditable, resize handle, or drag handle

@@ -371,11 +371,23 @@ function SlideRendererComponent({
     [slide.elements, onUpdateElement]
   );
 
-  // Combined blur handler: save content + exit text editing mode
+  // Combined blur handler: save content + exit text editing mode.
+  // Uses rAF delay so that toolbar interactions that call e.preventDefault()
+  // on mousedown can return focus before we exit editing.
   const handleTextBlur = useCallback(
     (elementId: string, e: React.FocusEvent<HTMLElement>) => {
       handleContentBlur(elementId, e);
-      handleExitTextEdit();
+      requestAnimationFrame(() => {
+        const contentEl = document.querySelector(
+          `[data-element-id="${elementId}"] [contenteditable]`
+        ) as HTMLElement
+          || document.querySelector(
+          `[data-element-id="${elementId}"][contenteditable]`
+        ) as HTMLElement;
+        // If focus returned to the contentEditable, stay in editing mode
+        if (contentEl && document.activeElement === contentEl) return;
+        handleExitTextEdit();
+      });
     },
     [handleContentBlur, handleExitTextEdit]
   );

@@ -6,6 +6,7 @@ import {
   ArrowLeft, Undo2, Redo2, Eye, EyeOff,
   LayoutGrid, GalleryHorizontalEnd, ZoomIn, ZoomOut,
   Download, Image as ImageIcon, FileArchive,
+  FileText, FileJson, Package, Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 
 export interface EditorToolbarProps {
@@ -43,6 +46,11 @@ export interface EditorToolbarProps {
   onSetShowCounter: (show: boolean) => void;
   onExportSlide: () => void;
   onExportAll: () => void;
+  onExportMarkdown: () => void;
+  onCopyMarkdown: () => void;
+  onExportJson: () => void;
+  onCopyJson: () => void;
+  onExportProjectZip: () => void;
   onSaveNow: () => void;
 }
 
@@ -70,6 +78,11 @@ export function EditorToolbar({
   onSetShowCounter,
   onExportSlide,
   onExportAll,
+  onExportMarkdown,
+  onCopyMarkdown,
+  onExportJson,
+  onCopyJson,
+  onExportProjectZip,
   onSaveNow,
 }: EditorToolbarProps) {
   const zoomPercent = Math.round(zoom * 100);
@@ -274,7 +287,8 @@ export function EditorToolbar({
               Exportar
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Imagens</DropdownMenuLabel>
             <DropdownMenuItem onClick={onExportSlide}>
               <ImageIcon className="mr-2 size-4" />
               Slide atual (PNG)
@@ -282,6 +296,38 @@ export function EditorToolbar({
             <DropdownMenuItem onClick={onExportAll}>
               <FileArchive className="mr-2 size-4" />
               Todos os slides (ZIP)
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Dados</DropdownMenuLabel>
+
+            <DropdownMenuItem onClick={onExportMarkdown}>
+              <FileText className="mr-2 size-4" />
+              <span className="flex-1">Markdown (.md)</span>
+              <button
+                className="ml-2 rounded p-0.5 hover:bg-accent"
+                onClick={(e) => { e.stopPropagation(); onCopyMarkdown(); }}
+                title="Copiar para clipboard"
+              >
+                <Copy className="size-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={onExportJson}>
+              <FileJson className="mr-2 size-4" />
+              <span className="flex-1">JSON (.json)</span>
+              <button
+                className="ml-2 rounded p-0.5 hover:bg-accent"
+                onClick={(e) => { e.stopPropagation(); onCopyJson(); }}
+                title="Copiar para clipboard"
+              >
+                <Copy className="size-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={onExportProjectZip}>
+              <Package className="mr-2 size-4" />
+              Projeto completo (.zip)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

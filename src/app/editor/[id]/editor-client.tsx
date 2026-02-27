@@ -11,7 +11,12 @@ import { EditorWorkspace, type EditorActions } from '@/components/editor/EditorW
 import { useEditorReducer } from '@/hooks/useEditorReducer';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { exportSlidePng, exportAllSlidesPng } from '@/lib/export-png';
+import { exportProjectAsZip, downloadBlob } from '@/lib/zip-export';
+import { schemaToMarkdown } from '@/lib/export-markdown';
+import { schemaToJson, slugify, downloadTextFile, copyToClipboard } from '@/lib/export-json';
 import { AssetProvider } from '@/lib/asset-urls';
+import { useToast } from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/toast-container';
 import type { CarouselSchema } from '@/types/schema';
 import { migrateSchema } from '@/lib/schema-validation';
 
@@ -88,6 +93,7 @@ function EditorInner({
 }) {
   const { state, actions } = useEditorReducer(initialSchema);
   const { isSaving, saveNow } = useAutoSave(projectId, state.carousel, state.isDirty, actions.markSaved);
+  const { toasts, show: showToast, dismiss: dismissToast } = useToast();
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -127,6 +133,48 @@ function EditorInner({
   const handleExportAll = useCallback(() => {
     exportAllSlidesPng(state.carousel.slides.length);
   }, [state.carousel.slides.length]);
+
+  const handleExportMarkdown = useCallback(() => {
+    const md = schemaToMarkdown(state.carousel);
+    const filename = `${slugify(state.carousel.title)}.md`;
+    downloadTextFile(md, filename, 'text/markdown;charset=utf-8');
+  }, [state.carousel]);
+
+  const handleCopyMarkdown = useCallback(async () => {
+    try {
+      const md = schemaToMarkdown(state.carousel);
+      await copyToClipboard(md);
+      showToast('Markdown copiado!');
+    } catch {
+      showToast('Erro ao copiar', 'error');
+    }
+  }, [state.carousel, showToast]);
+
+  const handleExportJson = useCallback(() => {
+    const json = schemaToJson(state.carousel);
+    const filename = `${slugify(state.carousel.title)}.json`;
+    downloadTextFile(json, filename, 'application/json;charset=utf-8');
+  }, [state.carousel]);
+
+  const handleCopyJson = useCallback(async () => {
+    try {
+      const json = schemaToJson(state.carousel);
+      await copyToClipboard(json);
+      showToast('JSON copiado!');
+    } catch {
+      showToast('Erro ao copiar', 'error');
+    }
+  }, [state.carousel, showToast]);
+
+  const handleExportProjectZip = useCallback(async () => {
+    try {
+      const blob = await exportProjectAsZip(projectId);
+      const filename = `${slugify(state.carousel.title)}.zip`;
+      downloadBlob(blob, filename);
+    } catch {
+      showToast('Erro ao exportar projeto', 'error');
+    }
+  }, [projectId, state.carousel.title, showToast]);
 
   const slideCount = state.carousel.slides.length;
 
@@ -178,9 +226,15 @@ function EditorInner({
         onSetShowCounter={actions.setShowCounter}
         onExportSlide={handleExportSlide}
         onExportAll={handleExportAll}
+        onExportMarkdown={handleExportMarkdown}
+        onCopyMarkdown={handleCopyMarkdown}
+        onExportJson={handleExportJson}
+        onCopyJson={handleCopyJson}
+        onExportProjectZip={handleExportProjectZip}
         onSaveNow={saveNow}
       />
       <EditorWorkspace state={state} actions={workspaceActions} projectId={projectId} />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
     </AssetProvider>
   );

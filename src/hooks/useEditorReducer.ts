@@ -8,6 +8,30 @@ import { nanoid } from '@/lib/nanoid';
 
 const MAX_UNDO = 50;
 
+const COALESCE_WINDOW_MS = 500;
+
+// Action types that should coalesce when repeated rapidly (e.g. slider drags)
+const COALESCEABLE_ACTIONS = new Set([
+  'UPDATE_ELEMENT',
+  'SET_SLIDE_BG',
+  'SET_SLIDE_BG_POSITION',
+  'SET_THEME',
+  'SET_FOOTER',
+  'SET_HANDLE',
+]);
+
+function getActionElementId(action: EditorAction): string | undefined {
+  switch (action.type) {
+    case 'UPDATE_ELEMENT':
+      return action.payload.elementId;
+    case 'SET_SLIDE_BG':
+    case 'SET_SLIDE_BG_POSITION':
+      return `__slide_${action.payload.slideIndex}__`;
+    default:
+      return undefined;
+  }
+}
+
 function createInitialState(carousel?: CarouselSchema): EditorState {
   const defaultCarousel = carousel ?? createEmptySchema(nanoid());
 
@@ -21,12 +45,41 @@ function createInitialState(carousel?: CarouselSchema): EditorState {
     redoStack: [],
     viewMode: 'horizontal',
     zoom: 1,
+    lastUndoAction: null,
   };
 }
 
-function pushUndo(state: EditorState): EditorState {
+function pushUndo(state: EditorState, action: EditorAction): EditorState {
+  const now = Date.now();
+  const last = state.lastUndoAction;
+  const actionElementId = getActionElementId(action);
+
+  // Coalesce: if the same coalesceable action type + element within the time window,
+  // replace the last undo entry instead of adding a new one
+  if (
+    COALESCEABLE_ACTIONS.has(action.type) &&
+    last &&
+    last.type === action.type &&
+    last.elementId === actionElementId &&
+    now - last.timestamp < COALESCE_WINDOW_MS
+  ) {
+    return {
+      ...state,
+      lastUndoAction: { ...last, timestamp: now },
+      isDirty: true,
+    };
+  }
+
   const undoStack = [...state.undoStack, structuredClone(state.carousel)].slice(-MAX_UNDO);
-  return { ...state, undoStack, redoStack: [], isDirty: true };
+  return {
+    ...state,
+    undoStack,
+    redoStack: [],
+    lastUndoAction: COALESCEABLE_ACTIONS.has(action.type)
+      ? { type: action.type, elementId: actionElementId, timestamp: now }
+      : null,
+    isDirty: true,
+  };
 }
 
 function editorReducer(state: EditorState, action: EditorAction): EditorState {
@@ -41,14 +94,14 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, selectedElementId: action.payload };
 
     case 'UPDATE_SLIDE': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       slides[action.payload.index] = action.payload.slide;
       return { ...s, carousel: { ...s.carousel, slides } };
     }
 
     case 'ADD_SLIDE': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       slides.splice(action.payload.afterIndex + 1, 0, action.payload.slide);
       return {
@@ -60,7 +113,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 
     case 'DELETE_SLIDE': {
       if (state.carousel.slides.length <= 1) return state;
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = s.carousel.slides.filter((_, i) => i !== action.payload);
       const newIndex = Math.min(s.selectedSlideIndex, slides.length - 1);
       return { ...s, carousel: { ...s.carousel, slides }, selectedSlideIndex: newIndex };
@@ -69,7 +122,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'MOVE_SLIDE': {
       const { from, to } = action.payload;
       if (from === to) return state;
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const [moved] = slides.splice(from, 1);
       slides.splice(to, 0, moved);
@@ -77,7 +130,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'DUPLICATE_SLIDE': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const original = s.carousel.slides[action.payload];
       if (!original) return state;
       const clone: Slide = structuredClone(original);
@@ -89,7 +142,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'UPDATE_ELEMENT': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const slide = { ...slides[action.payload.slideIndex] };
       slide.elements = slide.elements.map((el) =>
@@ -100,7 +153,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'ADD_ELEMENT': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const slide = { ...slides[action.payload.slideIndex] };
       const elements = [...slide.elements];
@@ -119,7 +172,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'DELETE_ELEMENT': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const slide = { ...slides[action.payload.slideIndex] };
       slide.elements = slide.elements.filter((el) => el.id !== action.payload.elementId);
@@ -128,7 +181,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'DUPLICATE_ELEMENT': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const slide = { ...slides[action.payload.slideIndex] };
       const elements = [...slide.elements];
@@ -143,7 +196,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'MOVE_ELEMENT': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const slide = { ...slides[action.payload.slideIndex] };
       const elements = [...slide.elements];
@@ -158,7 +211,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'REORDER_ELEMENT': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const slide = { ...slides[action.payload.slideIndex] };
       const elements = [...slide.elements];
@@ -172,27 +225,27 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'SET_THEME': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       return { ...s, carousel: { ...s.carousel, theme: action.payload } };
     }
 
     case 'SET_FOOTER': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       return { ...s, carousel: { ...s.carousel, footer: { ...s.carousel.footer, text: action.payload } } };
     }
 
     case 'SET_HANDLE': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       return { ...s, carousel: { ...s.carousel, header: { ...s.carousel.header, handle: action.handle } } };
     }
 
     case 'SET_SHOW_COUNTER': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       return { ...s, carousel: { ...s.carousel, header: { ...s.carousel.header, showCounter: action.show } } };
     }
 
     case 'SET_SLIDE_BG': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       slides[action.payload.slideIndex] = {
         ...slides[action.payload.slideIndex],
@@ -202,7 +255,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'SET_SLIDE_BG_IMAGE': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       slides[action.payload.slideIndex] = {
         ...slides[action.payload.slideIndex],
@@ -212,7 +265,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'SET_SLIDE_BG_POSITION': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       slides[action.payload.slideIndex] = {
         ...slides[action.payload.slideIndex],
@@ -222,7 +275,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'SET_SLIDE_LAYOUT': {
-      const s = pushUndo(state);
+      const s = pushUndo(state, action);
       const slides = [...s.carousel.slides];
       const slide = { ...slides[action.payload.slideIndex] };
       const toFreeform = action.payload.layout === 'freeform';
@@ -280,7 +333,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const undoStack = [...state.undoStack];
       const previous = undoStack.pop()!;
       const redoStack = [...state.redoStack, structuredClone(state.carousel)];
-      return { ...state, carousel: previous, undoStack, redoStack, isDirty: true };
+      return { ...state, carousel: previous, undoStack, redoStack, isDirty: true, lastUndoAction: null };
     }
 
     case 'REDO': {
@@ -288,7 +341,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const redoStack = [...state.redoStack];
       const next = redoStack.pop()!;
       const undoStack = [...state.undoStack, structuredClone(state.carousel)];
-      return { ...state, carousel: next, undoStack, redoStack, isDirty: true };
+      return { ...state, carousel: next, undoStack, redoStack, isDirty: true, lastUndoAction: null };
     }
 
     case 'MARK_SAVED':

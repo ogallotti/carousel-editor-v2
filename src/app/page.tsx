@@ -78,7 +78,7 @@ export default function HomePage() {
     });
     await db.projectData.add({
       projectId: id,
-      schema: schema as unknown as Record<string, unknown>,
+      schema,
       version: SCHEMA_VERSION,
     });
 

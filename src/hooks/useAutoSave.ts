@@ -41,8 +41,10 @@ export function useAutoSave(
   }, [projectId]);
 
   // Debounced auto-save when dirty
+  // schema is intentionally NOT in deps — schemaRef.current is always up-to-date
+  // and including schema would restart the debounce timer on every keystroke
   useEffect(() => {
-    if (!isDirty || !projectId || !schema) return;
+    if (!isDirty || !projectId || !schemaRef.current) return;
 
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -59,7 +61,8 @@ export function useAutoSave(
         timerRef.current = null;
       }
     };
-  }, [isDirty, projectId, schema, saveNow]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, projectId, saveNow]);
 
   return { isSaving, lastSaved, saveNow };
 }

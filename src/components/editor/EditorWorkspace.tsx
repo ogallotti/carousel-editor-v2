@@ -10,6 +10,9 @@ import type { Slide, SlideElement, SlideLayout, Theme, ElementType } from '@/typ
 import type { EditorState } from '@/types/editor';
 import { cn } from '@/lib/utils';
 
+const NOOP = () => {};
+const NOOP_UPDATE = () => {};
+
 export interface EditorActions {
   selectSlide: (i: number) => void;
   selectElement: (id: string | null) => void;
@@ -42,6 +45,7 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
 
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const editingTextRef = useRef<string | null>(null);
 
   const currentSlide = slides[selectedSlideIndex];
 
@@ -50,6 +54,10 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
   const totalSlides = slides.length;
 
   // Navigation
+  const handleEditingTextChange = useCallback((id: string | null) => {
+    editingTextRef.current = id;
+  }, []);
+
   const canGoPrev = selectedSlideIndex > 0;
   const canGoNext = selectedSlideIndex < totalSlides - 1;
 
@@ -175,10 +183,19 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
   // Arrow key navigation between slides
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Escape always works, even inside contentEditable
+      // Escape: two-level — first exits text editing, then deselects element
       if (e.key === 'Escape') {
+        if (editingTextRef.current) {
+          // Exit text editing mode but keep element selected
+          const editableEl = document.querySelector('[contenteditable]:focus') as HTMLElement;
+          if (editableEl) {
+            editableEl.blur();
+          } else {
+            editingTextRef.current = null;
+          }
+          return;
+        }
         actions.selectElement(null);
-        (e.target as HTMLElement)?.blur?.();
         return;
       }
 
@@ -257,8 +274,8 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
             totalSlides={totalSlides}
             isEditing={false}
             selectedElementId={null}
-            onSelectElement={() => {}}
-            onUpdateElement={() => {}}
+            onSelectElement={NOOP}
+            onUpdateElement={NOOP_UPDATE}
             scale={0.18}
             projectId={projectId}
           />
@@ -342,13 +359,14 @@ export function EditorWorkspace({ state, actions, projectId }: EditorWorkspacePr
                   totalSlides={totalSlides}
                   isEditing={isActive && !isPreviewMode}
                   selectedElementId={isActive ? rendererElementId : null}
-                  onSelectElement={isActive ? actions.selectElement : () => {}}
-                  onUpdateElement={isActive ? handleUpdateElement : () => {}}
+                  onSelectElement={isActive ? actions.selectElement : NOOP}
+                  onUpdateElement={isActive ? handleUpdateElement : NOOP_UPDATE}
                   onChangeElementType={isActive ? handleChangeElementType : undefined}
                   onDeleteElement={isActive ? handleDeleteElement : undefined}
                   onDuplicateElement={isActive ? handleDuplicateElement : undefined}
                   onUpdateSlideBgPosition={isActive ? handleSetSlideBgPosition : undefined}
                   onSetSlideLayout={isActive ? handleSetSlideLayout : undefined}
+                  onEditingTextChange={handleEditingTextChange}
                   scale={slideScale}
                   projectId={projectId}
                 />

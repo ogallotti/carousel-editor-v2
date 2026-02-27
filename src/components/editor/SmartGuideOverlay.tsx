@@ -14,6 +14,7 @@ export function SmartGuideOverlay({ guides }: SmartGuideOverlayProps) {
 
   return (
     <svg
+      data-editor-control
       style={{
         position: 'absolute',
         inset: 0,
@@ -31,7 +32,7 @@ export function SmartGuideOverlay({ guides }: SmartGuideOverlayProps) {
             y1={0}
             x2={guide.position}
             y2={SLIDE_HEIGHT}
-            stroke="#00d4ff"
+            stroke="var(--editor-accent)"
             strokeWidth={1}
             strokeDasharray="6 4"
           />
@@ -42,7 +43,7 @@ export function SmartGuideOverlay({ guides }: SmartGuideOverlayProps) {
             y1={guide.position}
             x2={SLIDE_WIDTH}
             y2={guide.position}
-            stroke="#00d4ff"
+            stroke="var(--editor-accent)"
             strokeWidth={1}
             strokeDasharray="6 4"
           />

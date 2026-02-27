@@ -16,11 +16,11 @@ interface SelectionToolbarProps {
 }
 
 const THEME_COLORS = [
-  { label: 'Texto', var: '--text' },
-  { label: 'Secundário', var: '--text-secondary' },
-  { label: 'Muted', var: '--text-muted' },
-  { label: 'Destaque', var: '--highlight' },
-  { label: 'Accent', var: '--accent' },
+  { label: 'Texto', var: '--slide-text' },
+  { label: 'Secundário', var: '--slide-text-secondary' },
+  { label: 'Muted', var: '--slide-text-muted' },
+  { label: 'Destaque', var: '--slide-highlight' },
+  { label: 'Accent', var: '--slide-accent' },
 ];
 
 const EXTRA_COLORS = [
@@ -42,8 +42,8 @@ function getSelectionFontSize(): number | null {
   if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
 
   const range = sel.getRangeAt(0);
-  let node = range.startContainer;
-  if (node.nodeType === Node.TEXT_NODE) node = node.parentElement!;
+  let node: Node | null = range.startContainer;
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
   if (!node || !(node instanceof HTMLElement)) return null;
 
   const computed = getComputedStyle(node);

@@ -67,5 +67,5 @@ export async function exportAllSlidesPng(totalSlides: number): Promise<void> {
   link.download = 'slides.zip';
   link.href = URL.createObjectURL(zipBlob);
   link.click();
-  URL.revokeObjectURL(link.href);
+  setTimeout(() => URL.revokeObjectURL(link.href), 5000);
 }

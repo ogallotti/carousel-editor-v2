@@ -1,6 +1,7 @@
 import { db, type Project, type Asset } from './db';
 import type { CarouselSchema } from '@/types/schema';
 import { createEmptySchema } from '@/types/schema';
+import { migrateSchema } from './schema-validation';
 import { nanoid } from './nanoid';
 
 export async function createProject(title: string): Promise<Project> {
@@ -14,7 +15,7 @@ export async function createProject(title: string): Promise<Project> {
   schema.title = title;
   await db.projectData.add({
     projectId: id,
-    schema: schema as unknown as Record<string, unknown>,
+    schema,
     version: schema.version,
   });
 
@@ -46,7 +47,7 @@ export async function saveProjectSchema(projectId: string, schema: CarouselSchem
 
   await db.projectData.put({
     projectId,
-    schema: schema as unknown as Record<string, unknown>,
+    schema,
     version: schema.version,
   });
 
@@ -55,7 +56,7 @@ export async function saveProjectSchema(projectId: string, schema: CarouselSchem
 
 export async function getProjectSchema(projectId: string): Promise<CarouselSchema | null> {
   const record = await db.projectData.get(projectId);
-  return record ? (record.schema as unknown as CarouselSchema) : null;
+  return record ? migrateSchema(record.schema) : null;
 }
 
 export async function saveAsset(projectId: string, filename: string, blob: Blob): Promise<Asset> {

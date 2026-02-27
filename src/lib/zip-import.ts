@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import { createProject, saveProjectSchema, saveAsset } from './projects';
 import { validateSchema, migrateSchema } from './schema-validation';
-import type { CarouselSchema } from '@/types/schema';
+import type { CarouselSchema, ImageElement } from '@/types/schema';
 
 const MIME_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -46,9 +46,9 @@ export async function importZipAsProject(file: File): Promise<string> {
 
   // Save schema with the new project's ID
   schema.id = project.id;
-  await saveProjectSchema(project.id, schema);
 
-  // Extract and save assets
+  // Extract and save assets — collect imported paths
+  const importedAssets = new Set<string>();
   const assetsFolder = zip.folder('assets');
   if (assetsFolder) {
     const assetFiles: string[] = [];
@@ -65,9 +65,35 @@ export async function importZipAsProject(file: File): Promise<string> {
       const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
       const typedBlob = new Blob([blob], { type: mimeType });
 
-      await saveAsset(project.id, `assets/${relativePath}`, typedBlob);
+      const assetPath = `assets/${relativePath}`;
+      await saveAsset(project.id, assetPath, typedBlob);
+      importedAssets.add(assetPath);
     }
   }
+
+  // Validate asset references — clear broken refs instead of failing
+  for (const slide of schema.slides) {
+    // Check slide backgroundImage
+    if (slide.backgroundImage && typeof slide.backgroundImage === 'string' && slide.backgroundImage.startsWith('assets/')) {
+      if (!importedAssets.has(slide.backgroundImage)) {
+        console.warn(`[zip-import] Asset ausente para backgroundImage: ${slide.backgroundImage}`);
+        slide.backgroundImage = null;
+      }
+    }
+
+    // Check image elements
+    for (const el of slide.elements) {
+      if (el.type === 'image') {
+        const img = el as ImageElement;
+        if (img.src && img.src.startsWith('assets/') && !importedAssets.has(img.src)) {
+          console.warn(`[zip-import] Asset ausente para imagem: ${img.src}`);
+          img.src = '';
+        }
+      }
+    }
+  }
+
+  await saveProjectSchema(project.id, schema);
 
   return project.id;
 }

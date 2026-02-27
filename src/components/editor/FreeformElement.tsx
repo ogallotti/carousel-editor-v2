@@ -13,7 +13,9 @@ interface FreeformElementProps {
   scale: number;
   isEditing: boolean;
   isSelected: boolean;
+  isTextEditing?: boolean;
   onSelect: () => void;
+  onEnterTextEdit?: () => void;
   onUpdate: (element: SlideElement) => void;
   otherElements?: SlideElement[];
   onGuidesChange?: (guides: GuideLine[]) => void;
@@ -26,7 +28,9 @@ export function FreeformElement({
   scale,
   isEditing,
   isSelected,
+  isTextEditing,
   onSelect,
+  onEnterTextEdit,
   onUpdate,
   otherElements,
   onGuidesChange,
@@ -68,7 +72,9 @@ export function FreeformElement({
       className={cn(
         'freeform-element',
         isSelected && 'selected',
-        isEditing && !isSelected && !isOverlay && 'cursor-pointer'
+        isEditing && !isSelected && !isOverlay && 'cursor-pointer',
+        isSelected && !isTextEditing && 'cursor-default',
+        isSelected && isTextEditing && 'cursor-text',
       )}
       style={style}
       data-element-id={element.id}
@@ -79,6 +85,12 @@ export function FreeformElement({
           if (!isSelected) {
             onSelect();
           }
+        }
+      }}
+      onDoubleClick={(e) => {
+        if (isEditing && onEnterTextEdit && !isTextEditing) {
+          e.stopPropagation();
+          onEnterTextEdit();
         }
       }}
       onMouseDown={(e) => {
@@ -100,6 +112,7 @@ export function FreeformElement({
       {isEditing && !isOverlay && (
         <div
           className="drag-handle"
+          data-editor-control
           onMouseDown={startDrag}
           title="Arrastar para mover"
         >
@@ -111,6 +124,7 @@ export function FreeformElement({
       {isEditing && !isOverlay && (
         <div
           className="resize-handle"
+          data-editor-control
           onMouseDown={startResize}
           title="Arrastar para redimensionar"
         />

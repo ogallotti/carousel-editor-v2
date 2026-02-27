@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import type { CarouselSchema, ThemeColors, ThemeTypography } from '@/types/schema';
 
 // ─── Table Interfaces ───────────────────────────────────────
 
@@ -15,7 +16,7 @@ export interface Project {
 
 export interface ProjectData {
   projectId: string;
-  schema: Record<string, unknown>;
+  schema: CarouselSchema | Record<string, unknown>;
   version: number;
 }
 
@@ -36,8 +37,8 @@ export interface UserSettings {
 
 export interface CustomTheme {
   name: string;
-  colors: Record<string, string>;
-  typography: Record<string, { family: string; weight: number }>;
+  colors: ThemeColors;
+  typography: ThemeTypography;
   fontScale: number;
   createdAt: Date;
 }

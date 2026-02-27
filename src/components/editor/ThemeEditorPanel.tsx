@@ -113,8 +113,8 @@ export function ThemeEditorPanel({
     if (!newThemeName.trim()) return;
     await saveCustomTheme({
       name: newThemeName.trim(),
-      colors: theme.colors as unknown as Record<string, string>,
-      typography: theme.typography as unknown as Record<string, { family: string; weight: number }>,
+      colors: theme.colors,
+      typography: theme.typography,
       fontScale: theme.fontScale,
       createdAt: new Date(),
     });

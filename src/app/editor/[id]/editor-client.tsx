@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -13,6 +13,7 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { exportSlidePng, exportAllSlidesPng } from '@/lib/export-png';
 import { AssetProvider } from '@/lib/asset-urls';
 import type { CarouselSchema } from '@/types/schema';
+import { migrateSchema } from '@/lib/schema-validation';
 
 export default function EditorPageClient() {
   const params = useParams<{ id: string }>();
@@ -37,7 +38,7 @@ export default function EditorPageClient() {
       const data = await db.projectData.get(params.id);
       setProject(proj);
       if (data?.schema) {
-        setInitialSchema(data.schema as unknown as CarouselSchema);
+        setInitialSchema(migrateSchema(data.schema as Record<string, unknown>));
       }
       setStatus('ready');
     }
@@ -129,8 +130,8 @@ function EditorInner({
 
   const slideCount = state.carousel.slides.length;
 
-  // Build workspace actions subset
-  const workspaceActions: EditorActions = {
+  // Build workspace actions subset (memoized — actions object is stable from useEditorReducer)
+  const workspaceActions: EditorActions = useMemo(() => ({
     selectSlide: actions.selectSlide,
     selectElement: actions.selectElement,
     addSlide: actions.addSlide,
@@ -148,7 +149,7 @@ function EditorInner({
     setSlideBgImage: actions.setSlideBgImage,
     setSlideBgPosition: actions.setSlideBgPosition,
     setSlideLayout: actions.setSlideLayout,
-  };
+  }), [actions]);
 
   return (
     <AssetProvider projectId={projectId}>

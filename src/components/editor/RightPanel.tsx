@@ -295,6 +295,16 @@ function ColorPickerField({
         placeholder={placeholder}
         className="h-7 flex-1 font-mono text-xs"
       />
+      {value !== undefined && (
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+          title="Resetar para o tema"
+        >
+          <X className="size-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -306,6 +316,7 @@ function SliderField({
   value,
   defaultValue,
   onChange,
+  onReset,
   min,
   max,
   step = 1,
@@ -315,12 +326,14 @@ function SliderField({
   value: number | undefined;
   defaultValue: number;
   onChange: (val: number) => void;
+  onReset?: () => void;
   min: number;
   max: number;
   step?: number;
   suffix?: string;
 }) {
   const current = value ?? defaultValue;
+  const hasOverride = onReset && value !== undefined;
   return (
     <div className="flex items-center gap-2">
       <Label className="w-20 shrink-0 text-[11px] text-muted-foreground">{label}</Label>
@@ -335,6 +348,16 @@ function SliderField({
       <span className="w-10 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
         {current}{suffix}
       </span>
+      {hasOverride && (
+        <button
+          type="button"
+          onClick={onReset}
+          className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+          title="Resetar para o tema"
+        >
+          <X className="size-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -781,6 +804,7 @@ function ElementProperties({
             value={element.fontSize}
             defaultValue={defaultFontSize}
             onChange={(v) => onUpdate({ ...element, fontSize: v } as SlideElement)}
+            onReset={() => onUpdate({ ...element, fontSize: undefined } as SlideElement)}
             min={8}
             max={200}
             suffix="px"

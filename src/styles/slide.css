@@ -2,6 +2,8 @@
    Slide Renderer CSS
    Reproduces the exact visual of standalone carousel HTMLs.
    Uses CSS variables from the carousel theme.
+   All slide theme vars use --slide- prefix to avoid collision
+   with Tailwind/shadcn variables.
    ============================================================ */
 
 .slide-wrapper {
@@ -10,19 +12,19 @@
 
 .slide-renderer {
   /* Default theme vars (overridden by inline styles) */
-  --highlight: #fbbf24;
-  --accent: #f59e0b;
-  --bg: #0a0e1a;
-  --bg-subtle: #111827;
-  --text: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --divider: #1e293b;
-  --card-bg: #0f172a;
-  --highlight-soft: rgba(251,191,36,0.10);
-  --highlight-border: rgba(251,191,36,0.25);
-  --icon-color: #fbbf24;
-  --icon-color-alt: #f59e0b;
+  --slide-highlight: #fbbf24;
+  --slide-accent: #f59e0b;
+  --slide-bg: #0a0e1a;
+  --slide-bg-subtle: #111827;
+  --slide-text: #f8fafc;
+  --slide-text-secondary: #cbd5e1;
+  --slide-text-muted: #64748b;
+  --slide-divider: #1e293b;
+  --slide-card-bg: #0f172a;
+  --slide-highlight-soft: rgba(251,191,36,0.10);
+  --slide-highlight-border: rgba(251,191,36,0.25);
+  --slide-icon-color: #fbbf24;
+  --slide-icon-color-alt: #f59e0b;
 
   /* Editor-only UI colors (NOT tied to slide theme) */
   --editor-accent: #2563eb;
@@ -32,22 +34,22 @@
 
 .slide {
   /* Typography custom properties (overridable via theme panel) */
-  --font-heading: 'Archivo', sans-serif;
-  --font-paragraph: 'Archivo', sans-serif;
-  --font-subtitle: 'Archivo', sans-serif;
-  --font-tag: 'Archivo', sans-serif;
-  --font-quote: 'Archivo', sans-serif;
-  --weight-heading: 700;
-  --weight-paragraph: 400;
-  --weight-subtitle: 500;
-  --weight-tag: 700;
-  --weight-quote: 500;
+  --slide-font-heading: 'Archivo', sans-serif;
+  --slide-font-paragraph: 'Archivo', sans-serif;
+  --slide-font-subtitle: 'Archivo', sans-serif;
+  --slide-font-tag: 'Archivo', sans-serif;
+  --slide-font-quote: 'Archivo', sans-serif;
+  --slide-weight-heading: 700;
+  --slide-weight-paragraph: 400;
+  --slide-weight-subtitle: 500;
+  --slide-weight-tag: 700;
+  --slide-weight-quote: 500;
 
-  font-family: 'Archivo', sans-serif;
+  font-family: var(--slide-font-paragraph, 'Archivo'), sans-serif;
   width: 1080px;
   height: 1440px;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--slide-bg);
+  color: var(--slide-text);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -61,7 +63,7 @@
 /* Bold/strong text */
 .slide strong {
   font-weight: 700;
-  color: var(--text);
+  color: inherit;
 }
 
 /* Paragraph spacing */
@@ -73,11 +75,11 @@
 
 /* Bare divs in content area (quote-text etc) */
 .slide .sc > div:not(.cover-emoji):not(.img-area):not(.img-bg):not(.list-item):not(.highlight-block):not(.divider-line) {
-  font-family: 'Archivo', sans-serif;
+  font-family: var(--slide-font-paragraph, 'Archivo'), sans-serif;
   font-size: 38px;
   font-weight: 400;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--slide-text-secondary);
   text-align: center;
   text-wrap: balance;
 }
@@ -89,7 +91,7 @@
   align-items: center;
   padding: 40px 64px 0;
   font-size: 24px;
-  color: var(--text-muted);
+  color: var(--slide-text-muted);
 }
 
 /* Content area */
@@ -102,7 +104,7 @@
   padding: 60px 100px;
   gap: var(--element-gap, 24px);
   text-align: center;
-  zoom: var(--font-scale, 1);
+  zoom: var(--slide-font-scale, 1);
 }
 
 /* Footer */
@@ -112,30 +114,30 @@
   align-items: center;
   padding: 0 64px 40px;
   font-size: 22px;
-  color: var(--text-muted);
+  color: var(--slide-text-muted);
 }
 
 .slide .ft .ft-theme {
-  color: var(--accent);
+  color: var(--slide-accent);
   font-weight: 700;
   letter-spacing: 0.05em;
 }
 
 /* Tag */
 .slide .tag {
-  font-family: var(--font-tag);
-  color: var(--accent);
+  font-family: var(--slide-font-tag);
+  color: var(--slide-accent);
   font-size: 22px;
-  font-weight: var(--weight-tag);
+  font-weight: var(--slide-weight-tag);
   text-transform: uppercase;
   letter-spacing: 0.15em;
 }
 
 /* Headings */
 .slide h1 {
-  font-family: var(--font-heading);
+  font-family: var(--slide-font-heading);
   font-size: 72px;
-  font-weight: var(--weight-heading);
+  font-weight: var(--slide-weight-heading);
   line-height: 1.05;
   text-transform: uppercase;
   text-align: center;
@@ -144,9 +146,9 @@
 }
 
 .slide h2 {
-  font-family: var(--font-heading);
+  font-family: var(--slide-font-heading);
   font-size: 56px;
-  font-weight: var(--weight-heading);
+  font-weight: var(--slide-weight-heading);
   line-height: 1.1;
   text-transform: uppercase;
   text-align: center;
@@ -155,9 +157,9 @@
 }
 
 .slide h3 {
-  font-family: var(--font-heading);
+  font-family: var(--slide-font-heading);
   font-size: 44px;
-  font-weight: var(--weight-heading);
+  font-weight: var(--slide-weight-heading);
   line-height: 1.15;
   text-align: center;
   text-wrap: balance;
@@ -166,11 +168,11 @@
 
 /* Paragraph */
 .slide p {
-  font-family: var(--font-paragraph);
+  font-family: var(--slide-font-paragraph);
   font-size: 38px;
-  font-weight: var(--weight-paragraph);
+  font-weight: var(--slide-weight-paragraph);
   line-height: 1.45;
-  color: var(--text-secondary);
+  color: var(--slide-text-secondary);
   text-align: center;
   text-wrap: balance;
   margin: 0;
@@ -178,11 +180,11 @@
 
 /* Subtitle */
 .slide .sub {
-  font-family: var(--font-subtitle);
+  font-family: var(--slide-font-subtitle);
   font-size: 32px;
-  font-weight: var(--weight-subtitle);
+  font-weight: var(--slide-weight-subtitle);
   line-height: 1.4;
-  color: var(--text-secondary);
+  color: var(--slide-text-secondary);
   text-align: center;
   text-wrap: balance;
   margin: 0;
@@ -190,7 +192,7 @@
 
 /* Highlight */
 .slide .hl {
-  color: var(--highlight);
+  color: var(--slide-highlight);
   font-weight: inherit;
 }
 
@@ -206,18 +208,18 @@
   font-size: 96px;
   font-weight: 700;
   line-height: 0.6;
-  color: var(--icon-color-alt);
+  color: var(--slide-icon-color-alt);
   text-align: center;
   user-select: none;
 }
 
 .slide .quote-text {
-  font-family: var(--font-quote);
+  font-family: var(--slide-font-quote);
   font-size: 46px;
-  font-weight: var(--weight-quote);
+  font-weight: var(--slide-weight-quote);
   font-style: italic;
   line-height: 1.45;
-  color: var(--text);
+  color: var(--slide-text);
   text-align: center;
   text-wrap: balance;
 }
@@ -235,16 +237,16 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  font-family: var(--font-paragraph);
+  font-family: var(--slide-font-paragraph);
   font-size: 36px;
-  font-weight: var(--weight-paragraph);
-  color: var(--text-secondary);
+  font-weight: var(--slide-weight-paragraph);
+  color: var(--slide-text-secondary);
   text-align: left;
   line-height: 1.4;
 }
 
 .slide .list-item strong {
-  color: var(--text);
+  color: var(--slide-text);
 }
 
 .slide .list-item .icon {
@@ -254,7 +256,7 @@
 }
 
 .slide .list-icon {
-  color: var(--icon-color);
+  color: var(--slide-icon-color);
   flex-shrink: 0;
   width: 48px;
   height: 48px;
@@ -299,20 +301,20 @@
 .slide .divider-line {
   width: 80px;
   height: 3px;
-  background: var(--divider);
+  background: var(--slide-divider);
   border-radius: 2px;
 }
 
 /* Highlight block */
 .slide .highlight-block {
-  background: var(--highlight-soft);
-  border: 1px solid var(--highlight-border);
+  background: var(--slide-highlight-soft);
+  border: 1px solid var(--slide-highlight-border);
   border-radius: 16px;
   padding: 32px;
 }
 
 .slide .highlight-block p {
-  color: var(--text);
+  color: var(--slide-text);
 }
 
 /* Counter in header */
@@ -392,7 +394,7 @@
   width: 12px;
   height: 12px;
   background: var(--editor-accent);
-  border: 1px solid var(--bg);
+  border: 1px solid var(--slide-bg);
   border-radius: 2px;
   cursor: se-resize;
   opacity: 0;

@@ -14,6 +14,7 @@ export interface EditorState {
   redoStack: CarouselSchema[];
   viewMode: 'horizontal' | 'grid';
   zoom: number;
+  lastUndoAction: { type: string; elementId?: string; timestamp: number } | null;
 }
 
 export type EditorAction =

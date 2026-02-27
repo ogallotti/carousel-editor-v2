@@ -292,28 +292,26 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
     setPresetName('');
   }, [presetName, value, category]);
 
-  // Track pending emission — avoids calling onChange during render
-  const pendingEmitRef = useRef<string | null>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
-  useEffect(() => {
-    if (pendingEmitRef.current !== null) {
-      const css = pendingEmitRef.current;
-      pendingEmitRef.current = null;
-      lastEmittedRef.current = css;
-      onChange(css);
-    }
-  });
+  const emitChange = useCallback((css: string) => {
+    lastEmittedRef.current = css;
+    onChangeRef.current(css);
+  }, []);
 
   const updateState = useCallback(
     (updater: (prev: GradientState) => GradientState) => {
+      let css: string;
       setState((prev) => {
         const next = updater(prev);
-        const css = gradientToCSS(next);
-        pendingEmitRef.current = css;
+        css = gradientToCSS(next);
         return next;
       });
+      // setState is synchronous in event handlers, so css is set
+      emitChange(css!);
     },
-    [],
+    [emitChange],
   );
 
   const selectedStop = useMemo(
@@ -373,12 +371,13 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       const handleMove = (moveEvent: MouseEvent) => {
         if (!draggingRef.current) return;
         const pos = getPositionFromEvent(moveEvent);
+        let css: string;
         setState((prev) => {
           const next = { ...prev, stops: prev.stops.map((s) => s.id === draggingRef.current ? { ...s, position: Math.round(pos) } : s) };
-          const css = gradientToCSS(next);
-          pendingEmitRef.current = css;
+          css = gradientToCSS(next);
           return next;
         });
+        emitChange(css!);
       };
 
       const handleUp = () => {
@@ -390,7 +389,7 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       window.addEventListener('mousemove', handleMove);
       window.addEventListener('mouseup', handleUp);
     },
-    [getPositionFromEvent],
+    [getPositionFromEvent, emitChange],
   );
 
   const handleStopTouchStart = useCallback(
@@ -406,12 +405,13 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
         const rect = barRef.current.getBoundingClientRect();
         const x = touch.clientX - rect.left;
         const pos = clamp((x / rect.width) * 100, 0, 100);
+        let css: string;
         setState((prev) => {
           const next = { ...prev, stops: prev.stops.map((s) => s.id === draggingRef.current ? { ...s, position: Math.round(pos) } : s) };
-          const css = gradientToCSS(next);
-          pendingEmitRef.current = css;
+          css = gradientToCSS(next);
           return next;
         });
+        emitChange(css!);
       };
 
       const handleEnd = () => {
@@ -423,7 +423,7 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       window.addEventListener('touchmove', handleMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
     },
-    [],
+    [emitChange],
   );
 
   const deleteStop = useCallback(
@@ -490,9 +490,9 @@ export function GradientEditor({ value, onChange, presets, category }: GradientE
       const parsed = parseCSSGradient(fill);
       setState(parsed);
       setSelectedStopId(parsed.stops[0]?.id ?? null);
-      pendingEmitRef.current = fill;
+      emitChange(fill);
     },
-    [],
+    [emitChange],
   );
 
   // ── Render ──

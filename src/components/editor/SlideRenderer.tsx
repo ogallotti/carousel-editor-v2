@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, memo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
 import { Copy, Trash2, Image, LayoutGrid, Move } from 'lucide-react';
 import type { Slide, SlideElement, SlideLayout, Theme, ElementType, OverlayElement, HighlightElement, QuoteElement, ListItemElement, DividerElement, ImageElement } from '@/types/schema';
 import type { GuideLine } from '@/hooks/useSmartGuides';
@@ -13,6 +13,59 @@ import { SelectionToolbar } from './SelectionToolbar';
 import { FreeformElement } from './FreeformElement';
 import { SmartGuideOverlay } from './SmartGuideOverlay';
 import { cn } from '@/lib/utils';
+
+// ─── EditableText ────────────────────────────────────────────
+// Prevents React from overwriting live DOM content while the user is typing.
+// Uses React.memo with a custom comparator to skip re-renders during editing.
+
+interface EditableTextProps {
+  as?: string;
+  html: string;
+  isEditing: boolean;
+  onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLElement>) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const EditableText = memo(function EditableText({
+  as: Tag = 'div',
+  html,
+  isEditing,
+  onBlur,
+  onKeyDown,
+  className,
+  style,
+}: EditableTextProps) {
+  // Store callbacks in refs so they stay fresh even when memo skips re-renders
+  const onBlurRef = useRef(onBlur);
+  onBlurRef.current = onBlur;
+  const onKeyDownRef = useRef(onKeyDown);
+  onKeyDownRef.current = onKeyDown;
+
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLElement>) => {
+    onBlurRef.current?.(e);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
+    onKeyDownRef.current?.(e);
+  }, []);
+
+  return React.createElement(Tag, {
+    className,
+    style,
+    contentEditable: isEditing || undefined,
+    suppressContentEditableWarning: true,
+    onBlur: isEditing ? handleBlur : undefined,
+    onKeyDown: isEditing ? handleKeyDown : undefined,
+    dangerouslySetInnerHTML: { __html: html },
+  });
+}, (prev, next) => {
+  // While actively editing, skip re-renders to preserve live DOM content
+  if (prev.isEditing && next.isEditing) return true;
+  // Allow re-render for all other transitions (entering/exiting edit, content updates)
+  return false;
+});
 
 function parseObjectPosition(pos?: string): { x: number; y: number } {
   if (!pos) return { x: 50, y: 50 };
@@ -43,6 +96,7 @@ interface SlideRendererProps {
   onDuplicateElement?: (elementId: string) => void;
   onUpdateSlideBgPosition?: (pos: string) => void;
   onSetSlideLayout?: (layout: SlideLayout, elementUpdates?: Record<string, Partial<SlideElement>>) => void;
+  onEditingTextChange?: (id: string | null) => void;
   scale?: number;
   projectId?: string;
 }
@@ -103,7 +157,9 @@ function ElementWrapper({
   element,
   isEditing,
   isSelected,
+  isTextEditing,
   onSelect,
+  onEnterTextEdit,
   onDuplicate,
   onDelete,
   className: extraClassName,
@@ -112,7 +168,9 @@ function ElementWrapper({
   element: SlideElement;
   isEditing: boolean;
   isSelected: boolean;
+  isTextEditing?: boolean;
   onSelect: () => void;
+  onEnterTextEdit?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
   className?: string;
@@ -131,6 +189,8 @@ function ElementWrapper({
       className={cn(
         'group/el relative',
         isEditing && !isSelected && 'cursor-pointer',
+        isSelected && !isTextEditing && 'cursor-default',
+        isSelected && isTextEditing && 'cursor-text',
         isSelected && 'outline outline-2 outline-offset-2 rounded outline-[var(--editor-accent)]',
         isEditing && !isSelected && 'hover:outline hover:outline-1 hover:outline-offset-1 hover:rounded hover:outline-[var(--editor-accent-border)]',
         extraClassName,
@@ -143,6 +203,12 @@ function ElementWrapper({
           if (!isSelected) {
             onSelect();
           }
+        }
+      }}
+      onDoubleClick={(e) => {
+        if (isEditing && onEnterTextEdit && !isTextEditing) {
+          e.stopPropagation();
+          onEnterTextEdit();
         }
       }}
     >
@@ -174,6 +240,7 @@ function SlideRendererComponent({
   onDuplicateElement,
   onUpdateSlideBgPosition,
   onSetSlideLayout,
+  onEditingTextChange,
   scale,
   projectId,
 }: SlideRendererProps) {
@@ -181,6 +248,8 @@ function SlideRendererComponent({
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [imageDialogTarget, setImageDialogTarget] = useState<string | null>(null);
   const [guides, setGuides] = useState<GuideLine[]>([]);
+  // Text editing mode: double-click to enter, Escape to exit
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const imageDragRef = useRef<{
     elementId: string;
     startX: number;
@@ -196,7 +265,13 @@ function SlideRendererComponent({
   const displayScale = scale ?? 0.375;
   const slideRef = useRef<HTMLDivElement>(null);
 
-  const themeVars = themeToCSVars(theme);
+  // Refs to avoid stale closures in document-level event handlers (image crop drag)
+  const slideElementsRef = useRef(slide.elements);
+  slideElementsRef.current = slide.elements;
+  const onUpdateElementRef = useRef(onUpdateElement);
+  onUpdateElementRef.current = onUpdateElement;
+
+  const themeVars = useMemo(() => themeToCSVars(theme), [theme]);
 
   const handleImageClick = useCallback(
     (elementId: string) => {
@@ -218,14 +293,42 @@ function SlideRendererComponent({
     [slide.elements, isEditing]
   );
 
-  // Exit crop mode when clicking outside or selecting another element
-  const prevSelectedRef = useRef(selectedElementId);
-  if (prevSelectedRef.current !== selectedElementId) {
-    prevSelectedRef.current = selectedElementId;
+  // Exit crop mode / text editing when selecting another element
+  useEffect(() => {
     if (cropModeId && selectedElementId !== cropModeId) {
       setCropModeId(null);
     }
-  }
+    if (editingTextId && selectedElementId !== editingTextId) {
+      setEditingTextId(null);
+      onEditingTextChange?.(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cropModeId and editingTextId intentionally not in deps
+  }, [selectedElementId]);
+
+  // Notify parent when editingTextId changes
+  const handleEnterTextEdit = useCallback((elementId: string) => {
+    setEditingTextId(elementId);
+    onEditingTextChange?.(elementId);
+  }, [onEditingTextChange]);
+
+  const handleExitTextEdit = useCallback(() => {
+    setEditingTextId(null);
+    onEditingTextChange?.(null);
+  }, [onEditingTextChange]);
+
+  // Auto-focus contentEditable when entering text editing mode
+  useEffect(() => {
+    if (!editingTextId) return;
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        `[data-element-id="${editingTextId}"] [contenteditable]`
+      ) as HTMLElement
+        || document.querySelector(
+        `[data-element-id="${editingTextId}"][contenteditable]`
+      ) as HTMLElement;
+      if (el) el.focus();
+    });
+  }, [editingTextId]);
 
   // Exit crop mode on Escape key
   useEffect(() => {
@@ -261,6 +364,15 @@ function SlideRendererComponent({
       }
     },
     [slide.elements, onUpdateElement]
+  );
+
+  // Combined blur handler: save content + exit text editing mode
+  const handleTextBlur = useCallback(
+    (elementId: string, e: React.FocusEvent<HTMLElement>) => {
+      handleContentBlur(elementId, e);
+      handleExitTextEdit();
+    },
+    [handleContentBlur, handleExitTextEdit]
   );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
@@ -300,9 +412,9 @@ function SlideRendererComponent({
         const newX = Math.min(100, Math.max(0, drag.startObjX - dx * sensitivity));
         const newY = Math.min(100, Math.max(0, drag.startObjY - dy * sensitivity));
         const pos = `${newX.toFixed(1)}% ${newY.toFixed(1)}%`;
-        const el = slide.elements.find((e) => e.id === drag.elementId);
+        const el = slideElementsRef.current.find((e) => e.id === drag.elementId);
         if (el && el.type === 'image') {
-          onUpdateElement(drag.elementId, { ...el, objectPosition: pos });
+          onUpdateElementRef.current(drag.elementId, { ...el, objectPosition: pos });
         }
       };
 
@@ -316,7 +428,7 @@ function SlideRendererComponent({
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     },
-    [slide.elements, isEditing, cropModeId, displayScale, onUpdateElement]
+    [slide.elements, isEditing, cropModeId, displayScale]
   );
 
   // ── Background image crop mode ──
@@ -326,10 +438,11 @@ function SlideRendererComponent({
     (e: React.MouseEvent) => {
       if (!isEditing || !slide.backgroundImage || !onUpdateSlideBgPosition) return;
       // Only trigger if click was NOT inside an element
-      let target = e.target as HTMLElement;
+      let target: HTMLElement | null = e.target as HTMLElement;
       while (target && target !== e.currentTarget) {
         if (target.hasAttribute('data-element-id')) return;
-        target = target.parentElement!;
+        target = target.parentElement;
+        if (!target) return;
       }
       setCropModeId(BG_CROP_ID);
     },
@@ -423,16 +536,6 @@ function SlideRendererComponent({
     onSetSlideLayout(targetLayout);
   }, [onSetSlideLayout]);
 
-  const editableProps = (elementId: string) =>
-    isEditing
-      ? {
-          contentEditable: true as const,
-          suppressContentEditableWarning: true as const,
-          onBlur: (e: React.FocusEvent<HTMLElement>) => handleContentBlur(elementId, e),
-          onKeyDown: handleKeyDown,
-        }
-      : {};
-
   // Group consecutive list-items into a .list-items container
   const renderElementsGrouped = (elements: SlideElement[]) => {
     const groups: React.ReactNode[] = [];
@@ -467,31 +570,31 @@ function SlideRendererComponent({
     switch (element.type) {
       case 'tag':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <div className="tag" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} isTextEditing={editingTextId === element.id} onSelect={() => onSelectElement(element.id)} onEnterTextEdit={() => handleEnterTextEdit(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <EditableText as="div" className="tag" style={getElementInlineStyle(element)} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           </ElementWrapper>
         );
 
       case 'heading': {
-        const Tag = `h${element.level}` as 'h1' | 'h2' | 'h3';
+        const HTag = `h${element.level}` as 'h1' | 'h2' | 'h3';
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <Tag style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} isTextEditing={editingTextId === element.id} onSelect={() => onSelectElement(element.id)} onEnterTextEdit={() => handleEnterTextEdit(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <EditableText as={HTag} style={getElementInlineStyle(element)} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           </ElementWrapper>
         );
       }
 
       case 'paragraph':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <p style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} isTextEditing={editingTextId === element.id} onSelect={() => onSelectElement(element.id)} onEnterTextEdit={() => handleEnterTextEdit(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <EditableText as="p" style={getElementInlineStyle(element)} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           </ElementWrapper>
         );
 
       case 'subtitle':
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
-            <p className="sub" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} isTextEditing={editingTextId === element.id} onSelect={() => onSelectElement(element.id)} onEnterTextEdit={() => handleEnterTextEdit(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+            <EditableText as="p" className="sub" style={getElementInlineStyle(element)} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           </ElementWrapper>
         );
 
@@ -581,15 +684,15 @@ function SlideRendererComponent({
       case 'quote': {
         const qt = element as QuoteElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} isTextEditing={editingTextId === element.id} onSelect={() => onSelectElement(element.id)} onEnterTextEdit={() => handleEnterTextEdit(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div className="quote-mark" style={{
               ...(qt.quoteMarkColor ? { color: qt.quoteMarkColor } : {}),
               ...(qt.quoteMarkSize !== undefined ? { fontSize: `${qt.quoteMarkSize}px` } : {}),
               ...(qt.quoteMarkOpacity !== undefined ? { opacity: qt.quoteMarkOpacity } : {}),
             }}>&ldquo;</div>
-            <div className="quote-text" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <EditableText as="div" className="quote-text" style={getElementInlineStyle(element)} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
             {element.attribution && (
-              <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+              <p className="mt-2 text-sm" style={{ color: 'var(--slide-text-muted)', textAlign: 'center' }}>
                 &mdash; {element.attribution}
               </p>
             )}
@@ -600,7 +703,7 @@ function SlideRendererComponent({
       case 'list-item': {
         const li = element as ListItemElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} isTextEditing={editingTextId === element.id} onSelect={() => onSelectElement(element.id)} onEnterTextEdit={() => handleEnterTextEdit(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div className="list-item" style={getElementInlineStyle(element)}>
               {isEditing ? (
                 <IconPicker
@@ -622,7 +725,7 @@ function SlideRendererComponent({
                   <span className="list-icon" style={{ width: li.iconSize ?? 48, height: li.iconSize ?? 48, ...(li.iconColor ? { color: li.iconColor } : {}) }}>{element.icon || '\u25CF'}</span>
                 )
               )}
-              <span {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              <EditableText as="span" html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
             </div>
           </ElementWrapper>
         );
@@ -631,14 +734,14 @@ function SlideRendererComponent({
       case 'highlight': {
         const hl = element as HighlightElement;
         return (
-          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} onSelect={() => onSelectElement(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
+          <ElementWrapper key={element.id} element={element} isEditing={isEditing} isSelected={isSelected} isTextEditing={editingTextId === element.id} onSelect={() => onSelectElement(element.id)} onEnterTextEdit={() => handleEnterTextEdit(element.id)} onDuplicate={onDuplicateElement ? () => onDuplicateElement(element.id) : undefined} onDelete={onDeleteElement ? () => onDeleteElement(element.id) : undefined}>
             <div className="highlight-block" style={{
               ...(hl.backgroundColor ? { background: hl.backgroundColor } : {}),
               ...(hl.borderColor ? { borderColor: hl.borderColor } : {}),
               ...(hl.borderRadius !== undefined ? { borderRadius: `${hl.borderRadius}px` } : {}),
               ...(hl.padding !== undefined ? { padding: `${hl.padding}px` } : {}),
             }}>
-              <p style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              <EditableText as="p" style={getElementInlineStyle(element)} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
             </div>
           </ElementWrapper>
         );
@@ -702,24 +805,24 @@ function SlideRendererComponent({
       switch (element.type) {
         case 'tag':
           return (
-            <div className="tag" style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <EditableText as="div" className="tag" style={inlineStyle} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           );
 
         case 'heading': {
-          const Tag = `h${element.level}` as 'h1' | 'h2' | 'h3';
+          const HTag = `h${element.level}` as 'h1' | 'h2' | 'h3';
           return (
-            <Tag style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <EditableText as={HTag} style={inlineStyle} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           );
         }
 
         case 'paragraph':
           return (
-            <p style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <EditableText as="p" style={inlineStyle} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           );
 
         case 'subtitle':
           return (
-            <p className="sub" style={inlineStyle} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+            <EditableText as="p" className="sub" style={inlineStyle} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
           );
 
         case 'emoji':
@@ -810,9 +913,9 @@ function SlideRendererComponent({
                 ...(fqt.quoteMarkSize !== undefined ? { fontSize: `${fqt.quoteMarkSize}px` } : {}),
                 ...(fqt.quoteMarkOpacity !== undefined ? { opacity: fqt.quoteMarkOpacity } : {}),
               }}>&ldquo;</div>
-              <div className="quote-text" style={getElementInlineStyle(element)} {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              <EditableText as="div" className="quote-text" style={getElementInlineStyle(element)} html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
               {element.attribution && (
-                <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+                <p className="mt-2 text-sm" style={{ color: 'var(--slide-text-muted)', textAlign: 'center' }}>
                   &mdash; {element.attribution}
                 </p>
               )}
@@ -844,7 +947,7 @@ function SlideRendererComponent({
                   <span className="list-icon" style={{ width: fli.iconSize ?? 48, height: fli.iconSize ?? 48, ...(fli.iconColor ? { color: fli.iconColor } : {}) }}>{element.icon || '\u25CF'}</span>
                 )
               )}
-              <span {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              <EditableText as="span" html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
             </div>
           );
         }
@@ -858,7 +961,7 @@ function SlideRendererComponent({
               ...(fhl.borderRadius !== undefined ? { borderRadius: `${fhl.borderRadius}px` } : {}),
               ...(fhl.padding !== undefined ? { padding: `${fhl.padding}px` } : {}),
             }}>
-              <p {...editableProps(element.id)} dangerouslySetInnerHTML={{ __html: element.content }} />
+              <EditableText as="p" html={element.content} isEditing={editingTextId === element.id} onBlur={(e) => handleTextBlur(element.id, e)} onKeyDown={handleKeyDown} />
             </div>
           );
         }
@@ -902,6 +1005,8 @@ function SlideRendererComponent({
     if (element.opacity !== undefined) freeformWrapperStyle.opacity = element.opacity;
     const hasWrapperStyle = Object.keys(freeformWrapperStyle).length > 0;
 
+    const isTextType = ['tag', 'heading', 'paragraph', 'subtitle', 'quote', 'list-item', 'highlight'].includes(element.type);
+
     return (
       <FreeformElement
         key={element.id}
@@ -910,7 +1015,9 @@ function SlideRendererComponent({
         scale={displayScale}
         isEditing={isEditing}
         isSelected={isSelected}
+        isTextEditing={editingTextId === element.id}
         onSelect={() => onSelectElement(element.id)}
+        onEnterTextEdit={isTextType ? () => handleEnterTextEdit(element.id) : undefined}
         onUpdate={(updatedElement) => onUpdateElement(element.id, updatedElement)}
         otherElements={slide.elements}
         onGuidesChange={setGuides}
@@ -1040,28 +1147,28 @@ function SlideRendererComponent({
 
       </div>
 
-      {/* Selection bubble toolbar — appears above text selection */}
-      {isEditing && selectedElementId && (
+      {/* Selection bubble toolbar — appears above text selection (only in text editing mode) */}
+      {isEditing && editingTextId && (
         <SelectionToolbar
           onBeforeFormat={() => {
-            if (!selectedElementId) return;
-            const element = slide.elements.find((el) => el.id === selectedElementId);
+            if (!editingTextId) return;
+            const element = slide.elements.find((el) => el.id === editingTextId);
             if (element && 'content' in element) {
-              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
-                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
+              const domEl = document.querySelector(`[data-element-id="${editingTextId}"] [contenteditable]`) as HTMLElement
+                || document.querySelector(`[data-element-id="${editingTextId}"][contenteditable]`) as HTMLElement;
               if (domEl) {
-                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
+                onUpdateElement(editingTextId, { ...element, content: domEl.innerHTML } as SlideElement);
               }
             }
           }}
           onAfterFormat={() => {
-            if (!selectedElementId) return;
-            const element = slide.elements.find((el) => el.id === selectedElementId);
+            if (!editingTextId) return;
+            const element = slide.elements.find((el) => el.id === editingTextId);
             if (element && 'content' in element) {
-              const domEl = document.querySelector(`[data-element-id="${selectedElementId}"] [contenteditable]`) as HTMLElement
-                || document.querySelector(`[data-element-id="${selectedElementId}"][contenteditable]`) as HTMLElement;
+              const domEl = document.querySelector(`[data-element-id="${editingTextId}"] [contenteditable]`) as HTMLElement
+                || document.querySelector(`[data-element-id="${editingTextId}"][contenteditable]`) as HTMLElement;
               if (domEl) {
-                onUpdateElement(selectedElementId, { ...element, content: domEl.innerHTML } as SlideElement);
+                onUpdateElement(editingTextId, { ...element, content: domEl.innerHTML } as SlideElement);
               }
             }
           }}
